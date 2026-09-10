@@ -35,8 +35,17 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
 
+      # Firefox has no software renderer of its own; Mesa's llvmpipe is it (ci.yml).
+      - name: Install software OpenGL for Firefox
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0
+
       # A red gate never publishes.
       - run: npm run check
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          GALLIUM_DRIVER: llvmpipe
 
       # The gate's e2e step leaves dist/ as the __E2E__ build, so the deployed artifact is
       # built fresh here with __E2E__ false. tests/static/e2e-hook-absent.mjs is what

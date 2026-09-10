@@ -23,13 +23,25 @@ jobs:
 
       - run: npm ci
 
-      # Both engines of the documented matrix (BROWSER_COMPATIBILITY.md §7). WebGL comes
-      # from SwiftShader, so no GPU is needed.
+      # Both engines of the documented matrix (BROWSER_COMPATIBILITY.md §7).
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox
 
+      # Chromium brings its own software renderer (SwiftShader); Firefox does not, and on a
+      # runner with no GPU it exhausts its driver options and returns a null WebGL2 context.
+      # Mesa's llvmpipe is that missing renderer, and it needs the DRI driver installed.
+      - name: Install software OpenGL for Firefox
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0
+
       # typecheck -> unit -> build -> static checks -> e2e smoke
       - run: npm run check
+        env:
+          # Force Mesa to the software path rather than looking for hardware.
+          # Chromium is unaffected: its ANGLE/SwiftShader backend does not use Mesa.
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          GALLIUM_DRIVER: llvmpipe
 
       - name: Upload Playwright report on failure
         if: failure()

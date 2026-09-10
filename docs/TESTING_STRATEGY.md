@@ -63,8 +63,10 @@ Run against `npm run preview` serving a **test build** — produced by `npm run 
 
 WebGL is forced to software so it works on CI runners without a GPU, per engine: Chromium via
 `--use-gl=angle --use-angle=swiftshader`; Firefox via the `webgl.force-enabled`,
-`webgl.disabled` and `gfx.webrender.software` prefs, since it has no SwiftShader switch and
-otherwise blocklists WebGL and returns a null context.
+`webgl.disabled` and `gfx.webrender.software` prefs, which get it past the blocklist, plus
+Mesa's llvmpipe on the runner (`libgl1-mesa-dri` and `LIBGL_ALWAYS_SOFTWARE=1` in `ci.yml`),
+since Firefox bundles no software renderer of its own and otherwise exhausts its driver
+options and returns a null context.
 
 The smoke test **grows with the milestones** — each step below lands with the system it exercises, and is not written before it. Phase 1 (T-1.9) implements steps 1–3 and 9 only — step 8 needs the asset system and moved to T-2.8:
 1. Loads the page; asserts the loading screen appears, then disappears within a timeout.
