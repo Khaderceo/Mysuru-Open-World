@@ -30,6 +30,11 @@ export interface Diagnostics {
   readonly render?: () => RenderDiagnostics;
   /** Heap bytes where available, else null. Detection stays in core/capabilities.ts. */
   readonly heapBytes?: () => number | null;
+  /**
+   * One-line input snapshot for the overlay. A formatted string rather than a typed view,
+   * so `core` needs no input import and the dependency direction is preserved.
+   */
+  readonly inputSummary?: () => string;
 }
 
 export interface InitProgress {
@@ -52,6 +57,11 @@ export interface GameOptions {
    * (T-1.2) and passed in here so `core` keeps no dependency on it.
    */
   readonly onRender?: () => void;
+  /**
+   * Runs once per frame before any consumer. The bootstrap wires the input snapshot here,
+   * so `core` never imports `input`.
+   */
+  readonly onFrameStart?: () => void;
   /** Injected in tests to drive frames by hand. */
   readonly loop?: LoopOptions;
   /** Dev-only diagnostic sources for the debug overlay (T-1.6). Ignored in production. */
@@ -89,6 +99,7 @@ export class Game {
     this.scheduler = new Scheduler(() => performance.now());
     this.loop = new Loop(
       {
+        frameStart: () => this.options.onFrameStart?.(),
         fixedUpdate: (fixedDt) => this.dispatchFixed(fixedDt),
         update: (dt) => this.scheduler.run(dt, this.runtime),
         lateUpdate: (dt, alpha) => this.dispatchLate(dt, alpha),
@@ -163,6 +174,7 @@ export class Game {
           timings: () => this.timings(),
           render: this.options.diagnostics?.render,
           heapBytes: this.options.diagnostics?.heapBytes,
+          inputSummary: this.options.diagnostics?.inputSummary,
         }),
         { hz: debug.DEBUG_HZ },
       );

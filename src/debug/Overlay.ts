@@ -41,6 +41,8 @@ export interface OverlaySources {
   readonly render?: (() => RenderDiagnostics) | undefined;
   /** Heap bytes where performance.memory exists, else null. Detection stays in capabilities. */
   readonly heapBytes?: (() => number | null) | undefined;
+  /** One-line input snapshot, so a key or mouse check is visible while playing (T-1.8). */
+  readonly inputSummary?: (() => string) | undefined;
 }
 
 export class DebugOverlay implements System {
@@ -144,6 +146,9 @@ export class DebugOverlay implements System {
 
     const heap = this.sources.heapBytes?.() ?? null;
     lines.push(heap === null ? 'heap n/a' : `heap ${(heap / BYTES_PER_MB).toFixed(1)}MB`);
+
+    const input = this.sources.inputSummary?.();
+    if (input !== undefined) lines.push(input);
 
     const timings = this.sources.timings();
     lines.push(`— systems (avg ms) ${String(timings.length)} —`);

@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.7**. Next task: **T-1.8**.
+> **Phase 1 — in progress.** Last done: **T-1.8**. Next task: **T-1.9**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -81,7 +81,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run test:e2e` (forced null context case). **Note:** the e2e harness is T-1.9's (`@playwright/test`, `playwright.config.ts`, `tests/e2e/`), so T-1.7 verified this case with the session's zero-dependency CDP harness instead — forcing `getContext('webgl2')` to return null and asserting the panel copy, code, Reload action and single log line. T-1.9 must land it as a committed spec (`BROWSER_COMPATIBILITY.md` §7 requires it).
 - **Risk / Complexity** Low / M
 
-### T-1.8 · Input system — `todo`
+### T-1.8 · Input system — `done`
 - **Purpose** Device events → one snapshot per frame, decoupled from gameplay.
 - **Deps** T-1.5. **Doc** `PLAYER_ARCHITECTURE.md` §6.
 - **Files** `src/input/InputSystem.ts`, `src/input/InputState.ts`, `src/data/bindings.ts`.

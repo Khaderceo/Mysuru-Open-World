@@ -6,12 +6,15 @@
 //   T-1.3  Game runtime, systems, context   (core/)        <- done
 //   T-1.5  loop + scheduler                 (core/)        <- done
 //   T-1.7  capability gate + loading screen (core/errors.ts, ui/)  <- done
+//   T-1.8  input snapshot                   (input/)       <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
 import { createConfig } from './core/config';
 import { createInitialState } from './core/state';
 import { detectCapabilities } from './core/capabilities';
+import { InputSystem } from './input/InputSystem';
+import { formatInputState } from './input/InputState';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
 import { createScene } from './rendering/Scene';
@@ -82,6 +85,19 @@ function bootstrap(): void {
     onResized: () => renderer.render(scene),
   });
 
+  // Pointer lock can be refused or dropped at any time; the drag-to-look fallback takes
+  // over and the degraded tier carries the notice, which becomes a visible HUD hint once
+  // T-10.5 lands the notice sink.
+  const input = new InputSystem(canvas, {
+    onPointerLockUnavailable: (reason) => {
+      errors.degraded(
+        'input.pointer-lock',
+        'Mouse capture is off — click the game to capture the mouse, or drag to look around.',
+        { reason },
+      );
+    },
+  });
+
   game = new Game({
     scene,
     camera,
@@ -106,11 +122,19 @@ function bootstrap(): void {
         if (!caps.performanceMemory) return null;
         return (performance as PerformanceWithMemory).memory?.usedJSHeapSize ?? null;
       },
+      inputSummary: () => formatInputState(input.state),
+    },
+    // Once per frame, before any consumer (WEB_ARCHITECTURE section 3).
+    onFrameStart: () => {
+      input.snapshot();
     },
     onProgress: ({ completed, total }) => {
       loading.setProgress(completed, total);
     },
   });
+
+  // Registered first, so it initialises before anything that reads its snapshot.
+  game.register(input);
 
   const started = game;
 

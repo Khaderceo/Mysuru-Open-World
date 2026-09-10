@@ -19,6 +19,12 @@ export type FrameRequest = (callback: (nowMs: number) => void) => number;
 export type FrameCancel = (handle: number) => void;
 
 export interface LoopCallbacks {
+  /**
+   * Runs first, once per frame, before any consumer. This is where the input snapshot is
+   * taken (WEB_ARCHITECTURE.md section 3), so every phase in the frame reads the same
+   * values and edge flags are true for exactly one frame.
+   */
+  readonly frameStart?: ((dt: number) => void) | undefined;
   /** Fixed-step simulation. Called 0..MAX_STEPS times per frame with exactly FIXED_DT. */
   readonly fixedUpdate: (fixedDt: number) => void;
   /** Rate-limited systems. Called once per frame with the clamped frame delta. */
@@ -127,6 +133,7 @@ export class Loop {
   /** Runs exactly one frame. Public so tests can step deterministically. */
   step(nowMs: number): void {
     const dt = this.clock.advance(nowMs);
+    this.callbacks.frameStart?.(dt);
     this.accumulator += dt;
 
     let steps = 0;
