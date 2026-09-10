@@ -47,7 +47,7 @@ function collect(page: Page): Collected {
   return { consoleErrors, pageErrors, allMessages, failedRequests };
 }
 
-test('boots cleanly, renders, and exposes the e2e hook', async ({ page }) => {
+test('boots cleanly, renders, and exposes the e2e hook', async ({ page }, testInfo) => {
   const collected = collect(page);
   await page.goto('?e2e=1');
 
@@ -55,6 +55,29 @@ test('boots cleanly, renders, and exposes the e2e hook', async ({ page }) => {
   const boot = page.locator('#boot');
   await expect(boot).toBeAttached();
   await expect(boot).toBeHidden({ timeout: 20_000 });
+
+  // The fatal handler also hides the loading screen, so the assertion above passes on a
+  // failed boot too. Everything needed to explain such a boot is gathered here, before
+  // any assertion that could mask it, and attached so CI keeps it.
+  const fatal = page.locator('#fatal');
+  const diagnostics = [
+    `pageErrors: ${collected.pageErrors.join(' | ') || 'none'}`,
+    `consoleErrors: ${collected.consoleErrors.join(' | ') || 'none'}`,
+    `failedRequests: ${collected.failedRequests.join(' | ') || 'none'}`,
+    `fatalPanel: ${((await fatal.count()) > 0 ? await fatal.innerText() : 'absent').replace(/\s+/g, ' ')}`,
+    `bootStatus: ${(await page.locator('#boot-status').textContent()) ?? ''}`,
+    // Decisive for telling an environment without WebGL2 apart from an application fault.
+    `webgl2Available: ${String(
+      await page.evaluate(() => document.createElement('canvas').getContext('webgl2') !== null),
+    )}`,
+    `consoleAll: ${collected.allMessages.slice(0, 12).join(' | ') || 'none'}`,
+  ].join('\n');
+  await testInfo.attach('boot-diagnostics', { body: diagnostics, contentType: 'text/plain' });
+
+  // Ordered so the cause reports itself: a crash, then a fatal panel, before the hook.
+  expect(collected.pageErrors, diagnostics).toEqual([]);
+  expect(collected.consoleErrors, diagnostics).toEqual([]);
+  await expect(fatal, diagnostics).toHaveCount(0);
 
   // 3. Canvas has real size and the renderer actually drew something.
   const snapshot = await page.evaluate(() => {
@@ -71,7 +94,7 @@ test('boots cleanly, renders, and exposes the e2e hook', async ({ page }) => {
       ? null
       : { ...hook.canvas, calls: hook.render.calls, running: hook.running };
   });
-  expect(snapshot, 'the ?e2e=1 hook should exist in the e2e build').not.toBeNull();
+  expect(snapshot, `the ?e2e=1 hook should exist in the e2e build\n${diagnostics}`).not.toBeNull();
   expect(snapshot?.width).toBeGreaterThan(0);
   expect(snapshot?.height).toBeGreaterThan(0);
   expect(snapshot?.calls).toBeGreaterThan(0);
@@ -80,16 +103,6 @@ test('boots cleanly, renders, and exposes the e2e hook', async ({ page }) => {
   // 9. No context loss and no shader compile failures.
   expect(collected.allMessages.filter((m) => /context lost/i.test(m))).toEqual([]);
   expect(collected.allMessages.filter((m) => /WebGLProgram/i.test(m))).toEqual([]);
-
-  // The fatal panel must not have appeared on a healthy boot.
-  await expect(page.locator('#fatal')).toHaveCount(0);
-
-  // 2. Asserted last so the earlier failures report first, which is more diagnosable.
-  expect(
-    collected.consoleErrors,
-    `failed requests: ${collected.failedRequests.join(' | ')}`,
-  ).toEqual([]);
-  expect(collected.pageErrors).toEqual([]);
 });
 
 test('without WebGL2 it shows the compatibility panel instead of a blank page', async ({

@@ -32,7 +32,12 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env['CI']),
   retries: 0,
-  reporter: process.env['CI'] === undefined ? [['list']] : [['github'], ['list']],
+  reporter:
+    process.env['CI'] === undefined
+      ? [['list']]
+      : // `html` is what actually writes playwright-report/, which ci.yml uploads on
+        // failure; without it that step finds no files.
+        [['github'], ['list'], ['html', { open: 'never' }]],
   use: {
     // The e2e build is what is served: production config with __E2E__ true, nothing else.
     baseURL: 'http://127.0.0.1:4173/Mysuru-Open-World/',
