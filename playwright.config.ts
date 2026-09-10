@@ -49,7 +49,10 @@ export default defineConfig({
     ...firefoxProjects(),
   ],
   webServer: {
-    command: 'npm run build:e2e && npm run preview -- --port 4173 --strictPort',
+    // `--host 127.0.0.1` is load-bearing: vite preview otherwise binds whatever
+    // `localhost` resolves to first, which is IPv6 on GitHub runners while Playwright
+    // polls IPv4 — the server then never appears and the run times out.
+    command: 'npm run build:e2e && npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173/Mysuru-Open-World/',
     // Never reuse: the command rebuilds, and reusing a live server silently serves a
     // stale build, which would let the gate pass against output nobody just produced.
