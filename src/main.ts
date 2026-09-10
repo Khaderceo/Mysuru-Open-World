@@ -16,6 +16,11 @@ import { createCamera } from './rendering/camera';
 import { createScene } from './rendering/Scene';
 import { addValidationScene } from './rendering/validationScene';
 
+/** `performance.memory` is non-standard; narrowed here rather than cast to any. */
+interface PerformanceWithMemory extends Performance {
+  readonly memory?: { readonly usedJSHeapSize: number };
+}
+
 const boot = document.getElementById('boot');
 const bootStatus = document.getElementById('boot-status');
 const canvas = document.getElementById('game');
@@ -52,6 +57,24 @@ if (!caps.webgl2 || !caps.requestAnimationFrame) {
     state: createInitialState(),
     // The renderer belongs to `rendering` (T-1.2); the loop calls this once per frame.
     onRender: () => renderer.render(scene),
+    // Dev-only diagnostics for the debug overlay (T-1.6). Production drops the overlay,
+    // so these are never read there. Feature detection stays in core/capabilities.ts.
+    diagnostics: {
+      render: () => {
+        const info = renderer.three.info;
+        return {
+          calls: info.render.calls,
+          triangles: info.render.triangles,
+          programs: info.programs?.length ?? 0,
+          geometries: info.memory.geometries,
+          textures: info.memory.textures,
+        };
+      },
+      heapBytes: () => {
+        if (!caps.performanceMemory) return null;
+        return (performance as PerformanceWithMemory).memory?.usedJSHeapSize ?? null;
+      },
+    },
     // T-1.7 routes this into the loading screen's progress bar.
     onProgress: ({ completed, total, systemId }) => {
       bootStatus.textContent = `Starting ${systemId} (${completed}/${total})`;

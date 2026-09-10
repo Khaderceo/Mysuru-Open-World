@@ -16,8 +16,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "node -e \"console.log('[stub] e2e tests arrive with T-1.9 (playwright)')\"",
-    "check": "npm run typecheck && npm run build && npm run test && npm run test:e2e",
-    "format": "prettier --write ."
+    "check": "npm run typecheck && npm run build && npm run check:static && npm run test && npm run test:e2e",
+    "format": "prettier --write .",
+    "check:static": "node tests/static/debug-absent.mjs"
   },
   "dependencies": {
     "three": "0.186.0"

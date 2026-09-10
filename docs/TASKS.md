@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.5a**. Next task: **T-1.6**.
+> **Phase 1 — in progress.** Last done: **T-1.6**. Next task: **T-1.7**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -65,7 +65,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** manual (a lit box on a ground plane is visible in the built page) + the frame-time readout once T-1.6 lands.
 - **Risk / Complexity** Low / S
 
-### T-1.6 · Debug overlay and diagnostics — `todo`
+### T-1.6 · Debug overlay and diagnostics — `done`
 - **Purpose** Build the instrument panel before the machine. Every later bug is diagnosed with this.
 - **Deps** T-1.5, T-1.5a (the counters need something to count). **Doc** `PERFORMANCE.md` §7, `TESTING_STRATEGY.md` §9.
 - **Files** `src/debug/Overlay.ts`, `src/debug/gizmos.ts`, `src/debug/index.ts`.
@@ -93,7 +93,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** The gate exists before there is anything to break.
 - **Deps** T-1.1 … T-1.8. **Doc** `TESTING_STRATEGY.md`, `DEPLOYMENT.md`.
 - **Files** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `vitest.config.ts` (only if config is actually needed), `playwright.config.ts`, `tests/static/*.mjs`, `tests/e2e/smoke.spec.ts`.
-- **Note** `vitest` was installed and the `test` script activated in **T-1.4**, whose acceptance required `npm run test` — do not re-install it, and do not add a `vitest.config.ts` unless something needs configuring (T-1.4 needed none). `@playwright/test` and `test:e2e` are still stubs and remain this task's job.
+- **Note** `vitest` was installed and the `test` script activated in **T-1.4**, whose acceptance required `npm run test` — do not re-install it, and do not add a `vitest.config.ts` unless something needs configuring (T-1.4 needed none). `@playwright/test` and `test:e2e` are still stubs and remain this task's job. **T-1.6** already added `tests/static/debug-absent.mjs` and the `check:static` script (its acceptance required a build check); extend that script to run the remaining static checks rather than starting a second harness.
 - **Acceptance** `npm run check` chains typecheck → unit → build → static checks → e2e smoke; static checks include import cycles, layering, secret scan (manifest/credits/string checks land with their systems); a `build:e2e` script produces the production config with `__E2E__: true` (`TESTING_STRATEGY.md` §5) and the deploy build asserts the hook is absent; **the Phase 1 smoke test implements only steps 1–3, 8 and 9** of `TESTING_STRATEGY.md` §5 — the player/vehicle/mission/save steps land with their milestones; e2e runs against `preview` in Chromium and Firefox with SwiftShader and asserts zero console errors; deploy publishes to Pages only after a green gate; the live subpath URL loads.
 - **Validation** CI green on push; deployed URL loads.
 - **Risk / Complexity** Medium / M

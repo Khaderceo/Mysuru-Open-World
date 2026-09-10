@@ -13,6 +13,25 @@ import type { Config } from './config';
 import type { GameState } from './state';
 import type { System, SystemId } from './System';
 
+/**
+ * renderer.info counters, shaped as a plain record so `core` needs no renderer import.
+ * Supplied by the bootstrap, consumed by the dev overlay (T-1.6).
+ */
+export interface RenderDiagnostics {
+  readonly calls: number;
+  readonly triangles: number;
+  readonly programs: number;
+  readonly geometries: number;
+  readonly textures: number;
+}
+
+/** Dev-only diagnostic sources. Absent in production, where the overlay does not exist. */
+export interface Diagnostics {
+  readonly render?: () => RenderDiagnostics;
+  /** Heap bytes where available, else null. Detection stays in core/capabilities.ts. */
+  readonly heapBytes?: () => number | null;
+}
+
 export interface InitProgress {
   /** Systems whose init has resolved. */
   readonly completed: number;
@@ -35,6 +54,8 @@ export interface GameOptions {
   readonly onRender?: () => void;
   /** Injected in tests to drive frames by hand. */
   readonly loop?: LoopOptions;
+  /** Dev-only diagnostic sources for the debug overlay (T-1.6). Ignored in production. */
+  readonly diagnostics?: Diagnostics;
 }
 
 type Phase = 'registering' | 'initialising' | 'ready' | 'disposed';
@@ -128,6 +149,25 @@ export class Game {
     if (this.currentPhase !== 'registering') {
       throw new Error(`Game.initSystems(): already called (phase: ${this.currentPhase})`);
     }
+
+    // The one place in src/ that reaches into debug/. The dynamic import lives inside the
+    // __DEV__ branch so production builds drop the entire debug module graph
+    // (ARCHITECTURE.md section 3). Registered here because register() requires the
+    // 'registering' phase, and it consumes existing diagnostics rather than adding any.
+    // The DOM check matches Loop's visibility binding: the overlay is a DOM tool, so it
+    // does not attach where there is no document (unit tests run in node).
+    if (__DEV__ && typeof document !== 'undefined') {
+      const debug = await import('../debug');
+      this.register(
+        new debug.DebugOverlay({
+          timings: () => this.timings(),
+          render: this.options.diagnostics?.render,
+          heapBytes: this.options.diagnostics?.heapBytes,
+        }),
+        { hz: debug.DEBUG_HZ },
+      );
+    }
+
     this.currentPhase = 'initialising';
 
     const total = this.systems.length;
