@@ -1,0 +1,55 @@
+# The gate (TESTING_STRATEGY.md §1). Runs exactly what a contributor runs locally, so
+# local and CI never disagree.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Both engines of the documented matrix (BROWSER_COMPATIBILITY.md §7).
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      # Chromium brings its own software renderer (SwiftShader); Firefox does not, and on a
+      # runner with no GPU it exhausts its driver options and returns a null WebGL2 context.
+      # Mesa's llvmpipe is that missing renderer, and it needs the DRI driver installed.
+      - name: Install software OpenGL for Firefox
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0 xvfb
+
+      # typecheck -> unit -> build -> static checks -> e2e smoke. Xvfb is the display
+      # Firefox's GL providers need before Mesa can give them a context — without one they
+      # exhaust their driver options whatever the prefs say, which is why Playwright's own
+      # Linux images run this way. Chromium ignores it.
+      - run: xvfb-run -a npm run check
+        env:
+          # Force Mesa to the software path rather than looking for hardware.
+          # Chromium is unaffected: its ANGLE/SwiftShader backend does not use Mesa.
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          GALLIUM_DRIVER: llvmpipe
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

@@ -1,0 +1,9 @@
+dist
+node_modules
+package-lock.json
+
+# Planning documents are hand-formatted prose and tables; reformatting them creates
+# large diffs for no benefit and violates CODING_RULES.md section 9 ("never reformat
+# files a change does not touch").
+docs
+README.md

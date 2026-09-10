@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Browsers request /favicon.ico unprompted, which 404s on a static host. An empty
+         data URI suppresses the request without shipping an asset or reaching the network.
+         A real icon is a Phase-4 art item. -->
+    <link rel="icon" href="data:," />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Mysuru Open World</title>
+    <style>
+      /* Minimal shell styling only. The loading screen and its progress reporting
+         are implemented in T-1.7; HUD styling arrives with T-8.0 / T-10.5. */
+      :root {
+        color-scheme: dark;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #14110e;
+        color: #e8e0d4;
+        font:
+          14px/1.5 system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        overflow: hidden;
+      }
+      #game {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #ui {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+      /* `display: grid` below outranks the UA's `[hidden] { display: none }`, so hiding
+         the loading screen needs this rule to actually take effect. */
+      #boot[hidden] {
+        display: none;
+      }
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 0.5rem;
+        text-align: center;
+        background: #14110e;
+      }
+      #boot p {
+        margin: 0;
+        opacity: 0.6;
+      }
+      #boot-progress {
+        width: 220px;
+        height: 3px;
+        margin: 0 auto;
+        overflow: hidden;
+        background: #2b251d;
+        border-radius: 2px;
+      }
+      #boot-bar {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: #c0703a;
+        transition: width 120ms linear;
+      }
+      #boot-stalled:empty {
+        display: none;
+      }
+      #boot-stalled {
+        max-width: 34ch;
+        margin: 0 auto;
+        opacity: 0.75;
+        font-size: 12px;
+      }
+      noscript {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        padding: 1rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="ui"></div>
+    <div id="boot">
+      <strong>Mysuru Open World</strong>
+      <p id="boot-status">Loading…</p>
+      <div id="boot-progress"><span id="boot-bar"></span></div>
+      <p id="boot-stalled"></p>
+    </div>
+    <noscript>
+      <p>This game needs JavaScript and WebGL2. Please enable JavaScript and reload.</p>
+    </noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
