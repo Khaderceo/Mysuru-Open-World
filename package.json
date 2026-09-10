@@ -14,7 +14,7 @@
     "build:e2e": "vite build --mode e2e",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"console.log('[stub] unit tests arrive with T-1.9 (vitest)')\"",
+    "test": "vitest run",
     "test:e2e": "node -e \"console.log('[stub] e2e tests arrive with T-1.9 (playwright)')\"",
     "check": "npm run typecheck && npm run build && npm run test && npm run test:e2e",
     "format": "prettier --write ."
@@ -26,6 +26,7 @@
     "@types/three": "0.185.4",
     "prettier": "3.9.6",
     "typescript": "7.0.2",
-    "vite": "8.2.2"
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
   }
 }

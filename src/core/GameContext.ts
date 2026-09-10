@@ -5,19 +5,21 @@
 // fetched via `get()`.
 
 import type { PerspectiveCamera, Scene } from 'three';
+import type { EventBus } from './EventBus';
 import type { Config } from './config';
 import type { GameState } from './state';
 import type { System, SystemId } from './System';
 
 /**
- * Services provided by a system during init rather than by the bootstrap.
+ * Services registered into the context rather than passed to its constructor.
  *
- * Each is `unknown` today because T-1.3 owns none of their designs: the owning task
- * replaces the alias with its real type in one line and every consumer keeps working.
- * Nothing reads them yet.
+ * The remaining `unknown` aliases exist because T-1.3 owns none of those designs: the
+ * owning task replaces the alias with its real type in one line and every consumer
+ * keeps working. `events` is now real (T-1.4) and Game registers it at construction,
+ * so reading `ctx.events` never throws.
  */
 export type ClockPort = unknown; // TODO(T-1.5): replace with Clock
-export type EventBusPort = unknown; // TODO(T-1.4): replace with EventBus
+export type EventBusPort = EventBus;
 export type PhysicsPort = unknown; // TODO(T-2.1): replace with CollisionWorld
 export type AssetsPort = unknown; // TODO(T-2.8): replace with AssetSystem
 
@@ -120,9 +122,13 @@ export class RuntimeContext implements GameContext {
     return this.slots[name].isRegistered;
   }
 
-  /** Called by the owning system during its own init. */
+  /** Called by the owning system during its own init, or by Game for core services. */
   provide<K extends keyof Services>(name: K, value: Services[K]): void {
-    this.slots[name].register(value);
+    // `slots[name]` is the slot for exactly this key by construction, but TypeScript
+    // cannot relate the parameter types across the slot union, so the correspondence is
+    // asserted here once rather than at every call site.
+    const slot = this.slots[name] as ServiceSlot<Services[K]>;
+    slot.register(value);
   }
 
   get<T extends System>(id: SystemId): T {

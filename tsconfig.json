@@ -20,5 +20,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "include": ["src", "types", "vite.config.ts"]
+  "include": ["src", "types", "tests", "vite.config.ts"]
 }

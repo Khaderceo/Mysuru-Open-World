@@ -5,6 +5,7 @@
 // deliberately exposes no dispatch surface yet.
 
 import type { PerspectiveCamera, Scene } from 'three';
+import { EventBus } from './EventBus';
 import { RuntimeContext, type GameContext } from './GameContext';
 import type { Config } from './config';
 import type { GameState } from './state';
@@ -47,6 +48,9 @@ export class Game {
       options.camera,
       (id) => this.byId.get(id),
     );
+    // Core infrastructure, not a system: available before any system initialises, so a
+    // system may subscribe in its own init().
+    this.runtime.provide('events', new EventBus());
   }
 
   get context(): GameContext {

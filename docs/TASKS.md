@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.3**. Next task: **T-1.4**.
+> **Phase 1 — in progress.** Last done: **T-1.4**. Next task: **T-1.5**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -40,7 +40,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run typecheck`; a throwaway test system proves ordering and disposal.
 - **Risk / Complexity** Medium / M
 
-### T-1.4 · Typed event bus — `todo`
+### T-1.4 · Typed event bus — `done`
 - **Purpose** Decoupled, allocation-free notifications.
 - **Deps** T-1.3. **Doc** `ARCHITECTURE.md` §4.
 - **Files** `src/core/events.ts`, `src/core/EventBus.ts`, `tests/unit/eventbus.test.ts`.
@@ -92,7 +92,8 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 ### T-1.9 · CI, deploy workflow and test harness — `todo`
 - **Purpose** The gate exists before there is anything to break.
 - **Deps** T-1.1 … T-1.8. **Doc** `TESTING_STRATEGY.md`, `DEPLOYMENT.md`.
-- **Files** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `vitest.config.ts`, `playwright.config.ts`, `tests/static/*.mjs`, `tests/e2e/smoke.spec.ts`.
+- **Files** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `vitest.config.ts` (only if config is actually needed), `playwright.config.ts`, `tests/static/*.mjs`, `tests/e2e/smoke.spec.ts`.
+- **Note** `vitest` was installed and the `test` script activated in **T-1.4**, whose acceptance required `npm run test` — do not re-install it, and do not add a `vitest.config.ts` unless something needs configuring (T-1.4 needed none). `@playwright/test` and `test:e2e` are still stubs and remain this task's job.
 - **Acceptance** `npm run check` chains typecheck → unit → build → static checks → e2e smoke; static checks include import cycles, layering, secret scan (manifest/credits/string checks land with their systems); a `build:e2e` script produces the production config with `__E2E__: true` (`TESTING_STRATEGY.md` §5) and the deploy build asserts the hook is absent; **the Phase 1 smoke test implements only steps 1–3, 8 and 9** of `TESTING_STRATEGY.md` §5 — the player/vehicle/mission/save steps land with their milestones; e2e runs against `preview` in Chromium and Firefox with SwiftShader and asserts zero console errors; deploy publishes to Pages only after a green gate; the live subpath URL loads.
 - **Validation** CI green on push; deployed URL loads.
 - **Risk / Complexity** Medium / M
