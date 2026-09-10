@@ -61,7 +61,10 @@ Tests import only the module under test — pure logic modules must not require 
 
 Run against `npm run preview` serving a **test build** — produced by `npm run build:e2e`, which is the production config with `__E2E__: true` and nothing else changed. This is the one place the two builds differ: the deployed build (`npm run build`) has `__E2E__: false`, so the `?e2e=1` hook is absent from it, and the build check asserts that. Testing a build that is byte-identical to the deployed one *and* exposes a test hook is not possible; a single flag flip is the smallest honest compromise, and every other code path is shared.
 
-WebGL is enabled via `--use-gl=angle --use-angle=swiftshader` so it works on CI runners without a GPU.
+WebGL is forced to software so it works on CI runners without a GPU, per engine: Chromium via
+`--use-gl=angle --use-angle=swiftshader`; Firefox via the `webgl.force-enabled`,
+`webgl.disabled` and `gfx.webrender.software` prefs, since it has no SwiftShader switch and
+otherwise blocklists WebGL and returns a null context.
 
 The smoke test **grows with the milestones** — each step below lands with the system it exercises, and is not written before it. Phase 1 (T-1.9) implements steps 1–3 and 9 only — step 8 needs the asset system and moved to T-2.8:
 1. Loads the page; asserts the loading screen appears, then disappears within a timeout.

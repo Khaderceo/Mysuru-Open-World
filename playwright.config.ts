@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { chromium, defineConfig, devices } from '@playwright/test';
 
-// SwiftShader gives a real WebGL2 context on runners with no GPU (TESTING_STRATEGY.md §5).
+// SwiftShader gives Chromium a real WebGL2 context on runners with no GPU
+// (TESTING_STRATEGY.md §5); Firefox needs prefs instead — see FIREFOX_WEBGL_PREFS.
 const WEBGL_ARGS = ['--use-gl=angle', '--use-angle=swiftshader', '--no-sandbox'];
 
 /**
@@ -15,6 +16,15 @@ function containerChromium(): { executablePath?: string } {
   return existsSync(fallback) ? { executablePath: fallback } : {};
 }
 
+// Firefox has no SwiftShader switch: on a GPU-less runner it blocklists WebGL and
+// `getContext('webgl2')` returns null, so these prefs are the engine's equivalent of
+// WEBGL_ARGS — force WebGL on past the blocklist and render it in software.
+const FIREFOX_WEBGL_PREFS = {
+  'webgl.force-enabled': true,
+  'webgl.disabled': false,
+  'gfx.webrender.software': true,
+};
+
 /**
  * Firefox is part of the documented matrix but is not present in every environment, and
  * downloads are disabled here. It is included only when its browser is actually
@@ -24,7 +34,17 @@ function firefoxProjects(): { name: string; use: Record<string, unknown> }[] {
   const root = process.env['PLAYWRIGHT_BROWSERS_PATH'];
   const installed =
     root === undefined || existsSync(`${root}/firefox`) || existsSync(`${root}/firefox-1`);
-  return installed ? [{ name: 'firefox', use: { ...devices['Desktop Firefox'] } }] : [];
+  return installed
+    ? [
+        {
+          name: 'firefox',
+          use: {
+            ...devices['Desktop Firefox'],
+            launchOptions: { firefoxUserPrefs: FIREFOX_WEBGL_PREFS },
+          },
+        },
+      ]
+    : [];
 }
 
 export default defineConfig({

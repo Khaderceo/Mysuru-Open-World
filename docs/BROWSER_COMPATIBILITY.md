@@ -78,7 +78,7 @@ WebGPU is **not** used in the MVP and must never become a requirement.
 
 ## 7. Verification
 
-- **CI, every push:** Playwright smoke in Chromium and Firefox (SwiftShader for WebGL2).
+- **CI, every push:** Playwright smoke in Chromium and Firefox (software WebGL2 in both — `TESTING_STRATEGY.md` §5).
 - **Phase boundaries:** manual pass on real Chrome, Edge and Firefox on desktop.
 - **Before release:** manual pass adding Safari; results recorded in the release notes with any known issues listed in the README.
 - The compatibility panel text itself is verified by a test that forces `getContext('webgl2')` to return null.
