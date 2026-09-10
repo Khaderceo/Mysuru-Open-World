@@ -100,7 +100,7 @@ Automated criteria are covered by `npm run check`. Manual criteria are run by ha
 | H1 | Reloading the page restores player position, money, mission progress, time of day, settings and vehicle position |
 | H2 | Autosave occurs periodically and on key events, with a visible confirmation |
 | H3 | A corrupt or hand-edited save is rejected, quarantined, and the game starts fresh with a notice — never a crash |
-| H4 | A save from an older schema version migrates without data loss (fixture test) |
+| H4 | The migration **mechanism** is proven: a committed synthetic pre-v1 fixture migrates to the current schema with no data loss, and a save claiming a newer version is refused with a clear message. (At v0.1.0 no real older version exists yet — this criterion verifies the machinery, not historical data.) |
 | H5 | With storage unavailable (private mode), the game runs in ephemeral mode with a notice |
 
 ## I. Day/night and audio

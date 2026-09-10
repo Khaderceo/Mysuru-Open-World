@@ -102,8 +102,8 @@ Task ids reference `TASKS.md`. Milestones (M1–M10) are the demonstrable checkp
 ## PHASE 8 — Interaction, missions, progression → **M9: a complete mission**
 
 - **Objective** The interaction system, mission runtime with all six objective primitives, economy, progression, and `M_TIFFIN_RUN` end to end.
-- **Dependencies** M6, M8.
-- **Tasks** T-8.1 … T-8.9.
+- **Dependencies** M6, M8. Note: the UI host and localization core are **pulled forward into T-8.0** — Phase 8 writes UI files and string ids, so building them in Phase 10 would have meant a throwaway panel plus a rewrite.
+- **Tasks** T-8.0 … T-8.9.
 - **Acceptance** MVP_ACCEPTANCE F1–F7; objective and economy unit tests pass; interactable disposal verified with no phantom prompts; mission completes and rewards exactly once.
 - **Risk** Low–Medium (lifecycle leaks).
 - **Complexity** Medium.

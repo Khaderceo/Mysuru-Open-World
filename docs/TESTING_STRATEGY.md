@@ -59,9 +59,11 @@ Tests import only the module under test — pure logic modules must not require 
 
 ## 5. E2E smoke (Playwright, headless Chromium)
 
-Run against `npm run preview` (the real production build), with WebGL enabled via `--use-gl=angle --use-angle=swiftshader` so it works on CI runners without a GPU.
+Run against `npm run preview` serving a **test build** — produced by `npm run build:e2e`, which is the production config with `__E2E__: true` and nothing else changed. This is the one place the two builds differ: the deployed build (`npm run build`) has `__E2E__: false`, so the `?e2e=1` hook is absent from it, and the build check asserts that. Testing a build that is byte-identical to the deployed one *and* exposes a test hook is not possible; a single flag flip is the smallest honest compromise, and every other code path is shared.
 
-The smoke test:
+WebGL is enabled via `--use-gl=angle --use-angle=swiftshader` so it works on CI runners without a GPU.
+
+The smoke test **grows with the milestones** — each step below lands with the system it exercises, and is not written before it. Phase 1 (T-1.9) implements steps 1–3, 8 and 9 only:
 1. Loads the page; asserts the loading screen appears, then disappears within a timeout.
 2. Asserts **zero console errors and zero unhandled rejections** (a strict allowlist for known-benign warnings, reviewed when it changes).
 3. Asserts the canvas has non-zero size and that `renderer.info.render.calls > 0` via an exposed dev hook.
@@ -72,7 +74,7 @@ The smoke test:
 8. Asserts a 404'd optional asset produces a notice and **not** a crash (network interception).
 9. Asserts no WebGL context loss and no `THREE.WebGLProgram` compile errors.
 
-The `?e2e=1` hook exposes a **read-only** state snapshot plus a few input/teleport helpers, is compiled out of production builds by the `__DEV__`/`__E2E__` flag, and is asserted absent in the production bundle by the build check.
+The `?e2e=1` hook exposes a **read-only** state snapshot plus a few input/teleport helpers, is guarded by `if (__E2E__)`, and is therefore present in the `build:e2e` output and absent from the deployed `build` output — which the build check asserts (`TASKS.md` T-11.8).
 
 ## 6. Perf test
 

@@ -13,7 +13,18 @@
 ### Why 1 km²
 
 - **It is enough.** At 4.5 m/s running and ~13 m/s in an auto-rickshaw, crossing 1 km takes ~75 s driving and ~3.5 min running. With four distinct zones and a dense street grid the district reads as a real place, and the player can memorise it — which is a design pillar, not a compromise.
-- **Draw calls, not area, are the limit.** With 128 m chunks and a 2-chunk detailed radius, the visible set is ~25 chunks. Our budget is ≤400 draw calls (`PERFORMANCE.md`), which means ~10–16 batches per chunk. That is achievable with merged static geometry plus instanced props. A 4 km² world at the same density would need real occlusion culling and impostors — work we are explicitly deferring.
+- **Draw calls, not area, are the limit.** With 128 m chunks and a 2-chunk detailed radius the visible set is ~25 chunks, and the ≤400 budget *includes the shadow pass* — so the per-chunk allowance is small and has to be budgeted explicitly:
+
+  | Source | Batches | Total |
+  |---|---|---|
+  | Detailed chunks: ground+road (1) + buildings/walls (2) + vegetation instances (3) | 6 × 25 | 150 |
+  | Shadow pass (buildings/walls/landmarks only — see `PERFORMANCE.md` §4.10) | 2 × 25 + 3 | 53 |
+  | Silhouette ring (one merged block mesh per chunk) | 1 × 24 | 24 |
+  | Traffic, pedestrians, player, vehicles | — | ~15 |
+  | Landmarks (LOD), sky, edges, debug-off | — | ~10 |
+  | **Typical total** | | **~250**, leaving headroom to 400 |
+
+  This closes **only because street props are merged into the chunk's static mesh rather than instanced per chunk** (`CITY_SYSTEM.md` §5): 8 prop types × 25 chunks would alone have been 200 batches. A 4 km² world at the same density would need real occlusion culling and impostors — work we are explicitly deferring.
 - **Memory.** 1 km² of shared/instanced content fits comfortably inside a ~256 MB texture budget and ~400 MB heap, with the whole road graph resident. A 9 km² world would force graph paging.
 - **Asset loading.** Initial download target ≤15 MB. That buys a modest set of modular kits reused everywhere. Doubling area does not double asset cost (reuse), but it does double authoring and tuning time — which is the actual scarce resource.
 - **Solo/agent development effort.** Every square kilometre must be *curated* to hit "small but polished". 1 km² is roughly 25–35 authored city blocks, which is a realistic amount of hand-tuning within the phase plan.

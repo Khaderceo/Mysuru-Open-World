@@ -19,7 +19,7 @@ Measurement first. Nothing in this document authorises speculative optimization.
 | Metric | Budget (reference machine, 1080p) | Where enforced |
 |---|---|---|
 | Frame time | ≤ 16.6 ms (p95); 0 frames > 33 ms | e2e perf test |
-| Draw calls | **≤ 400** typical, ≤ 500 peak | debug overlay + perf test |
+| Draw calls (**including the shadow pass**) | **≤ 400** typical, ≤ 500 peak | debug overlay + perf test |
 | Triangles rendered | **≤ 1.2 M** typical, ≤ 1.8 M peak | debug overlay |
 | Programs (shaders) | ≤ 25 | debug overlay |
 | Texture memory | **≤ 256 MB** | manifest sum + debug estimate |
@@ -53,7 +53,7 @@ See `WEB_ARCHITECTURE.md` §5 for the per-slice allocation (render 7 ms, sim 3.5
 7. **Tiered simulation.** NPCs and traffic simulate at rates and fidelities that fall off with distance.
 8. **Scheduler** so no system runs more often than it needs to.
 9. **Pooling and zero-allocation loops** to keep GC out of the frame.
-10. **Shadow map fitted and texel-snapped** to a 120 m box around the player rather than the whole world.
+10. **Shadow map fitted and texel-snapped** to a 120 m box around the player rather than the whole world. `renderer.info.render.calls` counts the shadow pass, so every caster is drawn twice: **only buildings, walls and landmarks cast shadows.** Ground, roads, props, vegetation, pedestrians and traffic have `castShadow = false` (they still receive). This roughly halves the shadow pass and is the reason the ≤400 budget closes — see the arithmetic in `WORLD_DESIGN.md` §3.
 
 ## 5. Rendering configuration
 

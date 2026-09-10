@@ -2,6 +2,10 @@
 
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
+> ## Current position
+> **Phase 1 — not started.** Next task: **T-1.1**.
+> Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
+
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
 **Complexity:** S (≤1 sitting) · M (a sitting or two) · L (needs splitting if it grows)
 **Every task's implicit validation** is `npm run check` unless a narrower command is named. Every task's implicit acceptance includes: no new dependency, no new folder without one, no unrelated file touched.
@@ -23,8 +27,8 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 ### T-1.2 · Renderer, scene and resize — `todo`
 - **Purpose** One place that owns the WebGL context, scene root, tone mapping and resize handling.
 - **Deps** T-1.1. **Doc** `PERFORMANCE.md` §5, `WEB_ARCHITECTURE.md` §6–7.
-- **Files** `src/rendering/Renderer.ts`, `src/rendering/Scene.ts`, `src/core/capabilities.ts`.
-- **Acceptance** WebGL2 context created with the documented settings; dpr clamped to the cap; debounced resize updates renderer and camera aspect; `capabilities.ts` is the single detection site and is frozen; context-loss/restore listeners registered.
+- **Files** `src/rendering/Renderer.ts`, `src/rendering/Scene.ts`, `src/rendering/camera.ts`, `src/core/capabilities.ts`.
+- **Acceptance** WebGL2 context created with the documented settings; **`rendering/camera.ts` creates and owns the single `PerspectiveCamera`** (near 0.15, far 600, FOV 60) — no other task creates one, and `camera/CameraSystem.ts` (T-2.6) *drives* this instance rather than constructing its own; dpr clamped to the cap; debounced resize updates renderer and camera aspect; `capabilities.ts` is the single detection site and is frozen; context-loss/restore listeners registered.
 - **Validation** `npm run build`; manual resize + zoom check.
 - **Risk / Complexity** Low / S
 
@@ -32,7 +36,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** The skeleton every system plugs into.
 - **Deps** T-1.2. **Doc** `ARCHITECTURE.md` §2–5.
 - **Files** `src/core/Game.ts`, `src/core/System.ts`, `src/core/GameContext.ts`, `src/core/state.ts`, `src/core/config.ts`.
-- **Acceptance** `System` interface exactly as documented; systems init in declared order with async support and progress reporting; `dispose` unwinds in reverse; `GameContext` exposes clock/events/config/state/scene/physics/get; `GameState` is a single typed tree with owner comments; no module-level mutable singletons.
+- **Acceptance** `System` interface exactly as documented; systems init in declared order with async support and progress reporting; `dispose` unwinds in reverse; `GameContext` exposes clock/events/config/state/scene/camera/get, plus `physics` and `assets` typed as **present-but-unset until T-2.1 and T-2.8 register them** (a `get`-style lookup that throws a named error if used early — never a silent `undefined`); `GameState` is a single typed tree with owner comments; no module-level mutable singletons.
 - **Validation** `npm run typecheck`; a throwaway test system proves ordering and disposal.
 - **Risk / Complexity** Medium / M
 
@@ -64,7 +68,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** Never a white screen; never a silent failure.
 - **Deps** T-1.2, T-1.3. **Doc** `ARCHITECTURE.md` §8, `UI_ARCHITECTURE.md` §4.
 - **Files** `src/core/errors.ts`, `src/ui/Loading.ts`, `src/ui/FatalPanel.ts`, `index.html` (static loading markup + CSP meta).
-- **Acceptance** Three error tiers routed through one module; global `onerror`/`unhandledrejection` show the fatal panel and log once with context; a missing WebGL2 context produces the documented panel; the loading screen paints before JS and reports weighted progress with a phase label; a 20 s no-progress watchdog surfaces pending keys.
+- **Acceptance** Three error tiers routed through one module; global `onerror`/`unhandledrejection` show the fatal panel and log once with context; a missing WebGL2 context produces the documented panel; the loading screen paints before JS and reports progress with a phase label; a 20 s no-progress watchdog surfaces what is pending. **In Phase 1 progress is driven by system-init step count** (there are no assets yet); byte-weighted asset progress and pending *asset keys* arrive with the asset system in T-2.8, which extends this panel rather than replacing it.
 - **Validation** `npm run test:e2e` (forced null context case).
 - **Risk / Complexity** Low / M
 
@@ -80,7 +84,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** The gate exists before there is anything to break.
 - **Deps** T-1.1 … T-1.8. **Doc** `TESTING_STRATEGY.md`, `DEPLOYMENT.md`.
 - **Files** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `vitest.config.ts`, `playwright.config.ts`, `tests/static/*.mjs`, `tests/e2e/smoke.spec.ts`.
-- **Acceptance** `npm run check` chains typecheck → unit → build → static checks → e2e smoke; static checks include import cycles, layering, secret scan (manifest/credits/string checks land with their systems); e2e runs against `preview` in Chromium and Firefox with SwiftShader and asserts zero console errors; deploy publishes to Pages only after a green gate; the live subpath URL loads.
+- **Acceptance** `npm run check` chains typecheck → unit → build → static checks → e2e smoke; static checks include import cycles, layering, secret scan (manifest/credits/string checks land with their systems); a `build:e2e` script produces the production config with `__E2E__: true` (`TESTING_STRATEGY.md` §5) and the deploy build asserts the hook is absent; **the Phase 1 smoke test implements only steps 1–3, 8 and 9** of `TESTING_STRATEGY.md` §5 — the player/vehicle/mission/save steps land with their milestones; e2e runs against `preview` in Chromium and Firefox with SwiftShader and asserts zero console errors; deploy publishes to Pages only after a green gate; the live subpath URL loads.
 - **Validation** CI green on push; deployed URL loads.
 - **Risk / Complexity** Medium / M
 
@@ -93,8 +97,9 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 ### T-2.1 · Collision world: shapes and broadphase — `todo`
 - **Purpose** The foundation of all movement.
 - **Deps** T-1.3. **Doc** `PLAYER_ARCHITECTURE.md` §2.
-- **Files** `src/physics/CollisionWorld.ts`, `src/physics/shapes.ts`, `src/physics/grid.ts`, `src/utils/math.ts`, `tests/unit/physics-grid.test.ts`.
-- **Acceptance** `Collider` union (box/ramp/wall, yaw-only) and the documented `CollisionWorld` API; uniform 8 m grid insert/remove with per-chunk bulk removal; `overlapSphere` and `raycast` allocation-free with `out` parameters; unit tests for grid membership, bulk removal and query correctness.
+- **Files** `src/physics/CollisionWorld.ts`, `src/physics/shapes.ts`, `src/utils/grid.ts`, `src/utils/math.ts`, `tests/unit/grid.test.ts`.
+- **Note** The uniform grid goes in `utils/` because `city/spatialIndex.ts` (T-3.3) and `interaction` need the same structure over different contents. **One implementation, several instances** — a second grid implementation is the duplication `CLAUDE_WORKFLOW.md` §9 names.
+- **Acceptance** `Collider` union (box/ramp/wall, yaw-only) and the documented `CollisionWorld` API; a generic `UniformGrid<T>` in `utils/` with 8 m cells, insert/remove and per-owner bulk removal; `overlapSphere` and `raycast` allocation-free with `out` parameters; unit tests for grid membership, bulk removal and query correctness.
 - **Validation** `npm run test`
 - **Risk / Complexity** Medium / M
 
@@ -187,7 +192,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 ### T-3.3 · RoadGraph: curves, lanes, sidewalks, intersections — `todo`
 - **Purpose** The single derived road model every system reads.
 - **Deps** T-3.2. **Doc** `CITY_SYSTEM.md` §1.
-- **Files** `src/city/RoadGraph.ts`, `src/city/lanes.ts`, `src/city/intersections.ts`, `src/city/spatialIndex.ts`, `tests/unit/roadgraph.test.ts`.
+- **Files** `src/city/RoadGraph.ts`, `src/city/lanes.ts`, `src/city/intersections.ts`, `src/city/spatialIndex.ts` (an instance of `utils/grid.ts`, not a new grid), `tests/unit/roadgraph.test.ts`.
 - **Acceptance** Catmull-Rom sampling at 2 m shared by lanes, sidewalks and the minimap; lane centrelines with direction/width/index/neighbours; turn connectivity through intersections; sidewalk polylines and crossing links for every signalled node; intersection polygons and stop lines; block polygons (planar faces); uniform spatial index; `RoadNetworkView` published exactly as documented; build time <20 ms; unit tests per bullet.
 - **Validation** `npm run test`
 - **Risk / Complexity** **High** / L — split into curve/lane, intersection, and block-extraction commits if it grows.
@@ -236,7 +241,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** Density and Mysuru texture at instanced cost.
 - **Deps** T-3.8. **Doc** `CITY_SYSTEM.md` §5.
 - **Files** `src/city/props.ts`, `src/city/vegetation.ts`, `src/data/city/propProfiles.ts`.
-- **Acceptance** Prop profiles drive spacing per road class; rejection sampling with a minimum-distance check so nothing intersects (test asserts no pair closer than the profile minimum); one `InstancedMesh` per prop type per chunk; utility-pole cables as catenary strips; parked vehicle props with colliders; density scales with the quality preset.
+- **Acceptance** Prop profiles drive spacing per road class; rejection sampling with a minimum-distance check so nothing intersects (test asserts no pair closer than the profile minimum); **static props merged into the chunk mesh (0 extra draw calls), vegetation instanced at ≤3 species batches per chunk** (`CITY_SYSTEM.md` §5); `castShadow = false` on props and vegetation; utility-pole cables as catenary strips; parked vehicle props with colliders; density scales with the quality preset; the draw-call counter stays within the `WORLD_DESIGN.md` §3 arithmetic with all four zones populated.
 - **Validation** `npm run test` + manual.
 - **Risk / Complexity** Medium / M
 
@@ -525,6 +530,14 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 
 ## PHASE 8 — Interaction, missions, progression (M9)
 
+### T-8.0 · UI host and localization core (pulled forward from Phase 10) — `todo`
+- **Purpose** Phase 8 writes `src/ui/Tracker.ts` and `src/ui/Dialogue.ts` and uses `StringId` throughout, but the UI host and `t()` were originally scheduled in Phase 10. Building them here — once — prevents a throwaway panel in Phase 8 and a rewrite in Phase 10, which is exactly the duplicated-implementation failure `CLAUDE_WORKFLOW.md` §9 names.
+- **Deps** M8. **Doc** `UI_ARCHITECTURE.md` §1–2, `LOCALIZATION_PLAN.md` §2–3.
+- **Files** `src/ui/UiRoot.ts`, `src/ui/panel.ts`, `src/ui/i18n.ts`, `src/data/strings/en.ts`, `tests/static/strings.mjs`, `tests/unit/i18n.test.ts`.
+- **Acceptance** The `#ui` overlay structure and the `mount/update/dispose` panel contract exist; `t(id, params)` with interpolation, `Intl` formatting and `en` as the id-defining source; `data-i18n` re-resolution; the string-id static check is wired into `npm run check`. **This is the host only — no HUD content panels.** T-10.4 and T-10.5 then *extend* this; neither creates a second host or a second `t()`.
+- **Validation** `npm run check`
+- **Risk / Complexity** Low / M
+
 ### T-8.1 · Interaction registry and resolver — `todo`
 - **Deps** M8, T-2.1. **Doc** `INTERACTION_ARCHITECTURE.md` §1–3, ADR-009.
 - **Files** `src/interaction/InteractionSystem.ts`, `src/interaction/registry.ts`, `tests/unit/interaction.test.ts`.
@@ -561,8 +574,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Risk / Complexity** Low / S
 
 ### T-8.6 · Dialogue system — `todo`
-- **Deps** T-8.4, (UI panel from T-10.5 — a minimal panel is acceptable here).
-- **Doc** `MISSION_ARCHITECTURE.md` §8, `UI_ARCHITECTURE.md` §3.
+- **Deps** T-8.4, T-8.0. **Doc** `MISSION_ARCHITECTURE.md` §8, `UI_ARCHITECTURE.md` §3.
 - **Files** `src/data/dialogue.ts`, `src/ui/Dialogue.ts`.
 - **Acceptance** Linear advance-on-key dialogue with speaker names and subtitles always on; movement blocked while open; `choices` present in the type but unused; all text via `StringId`.
 - **Validation** manual.
@@ -576,7 +588,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Risk / Complexity** Low / S
 
 ### T-8.8 · Mission markers and tracker wiring — `todo`
-- **Deps** T-8.4. **Doc** `MISSION_ARCHITECTURE.md` §2, `UI_ARCHITECTURE.md` §6.
+- **Deps** T-8.4, T-8.0. **Doc** `MISSION_ARCHITECTURE.md` §2, `UI_ARCHITECTURE.md` §6.
 - **Files** `src/missions/markers.ts`, `src/ui/Tracker.ts`.
 - **Acceptance** Objectives publish `MarkerDesc`s consumed by the HUD tracker and (in Phase 10) the minimap; the tracker shows title, current objective label and distance; updates are event-driven plus 10 Hz for distance; markers are removed on objective completion and on abandon.
 - **Validation** manual.
@@ -643,7 +655,8 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Acceptance** Click/back/toast/accept/complete/level-up/save sounds on the UI bus; the mission-complete sting ducks ambience by 4 dB; nothing plays while paused except UI.
 - **Risk / Complexity** Low / S
 
-### T-9.8 · Weather scaffolding (clear/cloudy only) — `todo`
+### T-9.8 · Weather scaffolding (clear/cloudy only) — `todo` · **OPTIONAL — cut first**
+- **Scope note** Weather is explicitly *not* required by `MVP_ACCEPTANCE.md`. This task exists only because it is nearly free (a blend factor over values that already exist). **Skip it without hesitation** if Phase 9 runs long, or if it would delay Phase 10; do not let it grow.
 - **Deps** T-9.1. **Doc** `WORLD_DESIGN.md` §9.
 - **Files** `src/world/Weather.ts`, `src/data/weather.ts`.
 - **Acceptance** A blend-factor state set modulating existing fog/sun/ambient values only — **no new rendering systems, no particles**; `clear` and `cloudy` implemented, `rain` defined in data but disabled; switching states is smooth and costs zero extra draw calls.
@@ -675,15 +688,17 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run test:e2e` (reload restore case) + manual.
 - **Risk / Complexity** Medium / M
 
-### T-10.4 · Localization core — `todo`
-- **Deps** Phase 9. **Doc** `LOCALIZATION_PLAN.md` §2–3.
-- **Files** `src/data/strings/en.ts`, `src/data/strings/kn.ts`, `src/ui/i18n.ts`, `tests/static/strings.mjs`, `tests/unit/i18n.test.ts`.
-- **Acceptance** `StringId` derived from `en`; `kn` typed `Partial<Record<StringId, string>>`; `t(id, params)` with `{placeholder}` interpolation; `Intl` formatting for `en-IN`/`kn-IN`; missing `kn` falls back to `en` and logs once in dev; `data-i18n` elements re-resolve on a language switch with no remount; static checks assert every used id exists and report `kn` coverage.
+### T-10.4 · Localization: second locale and coverage — `todo`
+- **Purpose** Extend the T-8.0 core with the Kannada locale and the fallback/coverage machinery. **Does not re-create `i18n.ts` or `en.ts`.**
+- **Deps** Phase 9, T-8.0. **Doc** `LOCALIZATION_PLAN.md` §2–3, §6.
+- **Files** `src/data/strings/kn.ts`, `src/ui/i18n.ts` (extend), `tests/static/strings.mjs` (extend).
+- **Acceptance** `kn` typed `Partial<Record<StringId, string>>`; locale switching at runtime with `data-i18n` re-resolution and no remount; missing `kn` falls back to `en` and logs once in dev; `Intl` formatting for `kn-IN`; the static check reports `kn` coverage as a percentage.
 - **Validation** `npm run check`
 - **Risk / Complexity** Medium / M
 
 ### T-10.5 · HUD panels — `todo`
-- **Deps** T-10.4, T-8.8. **Doc** `UI_ARCHITECTURE.md` §1–2, §6.
+- **Purpose** The remaining HUD content panels, mounted into the T-8.0 host.
+- **Deps** T-8.0, T-10.4, T-8.8. **Doc** `UI_ARCHITECTURE.md` §1–2, §6.
 - **Files** `src/ui/Hud.ts`, `src/ui/Money.ts`, `src/ui/Speed.ts`, `src/ui/Prompt.ts`, `src/ui/Clock.ts`, `src/ui/Toasts.ts`, `src/ui/Notice.ts`, `src/ui/hud.css`.
 - **Acceptance** Panels are `mount/update/dispose` modules subscribing to events; static markup built once; updates write text/transform/custom-properties only at 10 Hz plus event-driven; CSS transitions for animation; no layout reads in the loop; toast queue with max 3 visible; notices dismissible; `clamp()`/`rem` layout scaling from 1280×720 to 4K.
 - **Validation** manual at three window sizes + frame-time check.

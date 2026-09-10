@@ -119,7 +119,7 @@ Phase A uses primitives with the same assembly rules; Phase B swaps in the autho
 
 ## 5. Street furniture and vegetation
 
-All placed as **instanced batches per chunk**, driven by prop profiles along road polylines:
+Placement is driven by prop profiles along road polylines. **Low-poly static props (≤200 tris) are merged into the chunk's static mesh, not instanced** — 100 merged props add ~20k triangles and *zero* draw calls, whereas one `InstancedMesh` per prop type per chunk would cost ~200 batches across the visible set and blow the budget (`WORLD_DESIGN.md` §3). Instancing is reserved for **vegetation only**, where the per-type triangle count and LOD/billboard swapping earn it: ≤3 species batches per chunk.
 
 | Prop | Placement rule |
 |---|---|

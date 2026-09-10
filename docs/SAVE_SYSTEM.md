@@ -104,6 +104,10 @@ The save is user-writable — treat it as untrusted input, not as our own data.
 const MIGRATIONS: Record<number, (old: any) => any> = {
   // 1: (v1) => ({ ...v1, version: 2, newField: default }),
 };
+// At v0.1.0 this map is empty by definition — v1 is the first schema. The chain is
+// still exercised from day one by a committed synthetic pre-v1 fixture plus a
+// registered no-op 0→1 migration, so the machinery is tested before it is needed.
+// (MVP_ACCEPTANCE H4.)
 function migrate(data: any): SaveFileV1 { /* apply chain until CURRENT_VERSION */ }
 ```
 
