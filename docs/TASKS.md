@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — complete** (M1 tag pending a Pages deploy check — see T-1.9). Last done: **T-1.9**. Next task: **T-2.1**.
+> **Phase 1 — complete; M1 deployed.** Live at https://khaderceo.github.io/Mysuru-Open-World/ from `cd3e77a` (deploy run 34519580933). Last done: **T-1.9**. Next task: **T-2.1**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -97,11 +97,11 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Acceptance** `npm run check` chains typecheck → unit → build → static checks → e2e smoke; static checks include import cycles, layering, secret scan (manifest/credits/string checks land with their systems); a `build:e2e` script produces the production config with `__E2E__: true` (`TESTING_STRATEGY.md` §5) and the deploy build asserts the hook is absent; **the Phase 1 smoke test implements only steps 1–3 and 9** of `TESTING_STRATEGY.md` §5 — the player/vehicle/mission/save steps land with their milestones, and **step 8 moved to T-2.8**: a 404'd *optional* asset needs the asset system and its degraded notice, neither of which exists in Phase 1, where every fetched file is a critical chunk whose failure is fatal rather than a notice. T-1.9 additionally lands the forced-null-WebGL2 spec that `BROWSER_COMPATIBILITY.md` §7 requires and T-1.7 deferred here; e2e runs against `preview` in Chromium and Firefox with software WebGL and asserts zero console errors; deploy publishes to Pages only after a green gate; the live subpath URL loads.
 - **Environment note** `playwright.config.ts` declares both engines, but includes Firefox only when its browser is installed: this container ships Chromium only and browser downloads are disabled in it, so the two-engine run happens in CI, which installs both. Chromium there also uses the pinned Playwright build rather than the container's fallback executable.
 - **CI green on push — observed.** Run `34513525361` on `94aae85`: typecheck, 48/48 unit, build, 5/5 static checks and 4/4 e2e (both specs in both engines) all pass. Getting Firefox there took three things beyond the Chromium setup, all configuration: the WebGL prefs, Mesa's llvmpipe on the runner, and Xvfb with the project run headed (`TESTING_STRATEGY.md` §5).
-- **Still not verifiable from the dev container** "the live subpath URL loads" needs Pages enabled on the repository and the workflows present on `main`; `deploy.yml` is committed and its YAML parses, but the M1 tag should wait until a real deploy has been observed.
+- **Deployed — observed.** PR #1 merged Phase 1 to `main` as `cd3e77a`; deploy run 34519580933 passed the same gate, published the Pages artifact and reported success for the environment URL https://khaderceo.github.io/Mysuru-Open-World/. The published production bundle was then booted and checked with a mid-frame `readPixels`: the clear colour, the lit ground plane and the test box all read back as expected, with no console errors and no fatal panel. Fetching the live URL itself is blocked by the dev container's network egress policy, so that last hop is confirmed by the deployment API and a maintainer's own browser, not from here.
 - **Validation** CI green on push; deployed URL loads.
 - **Risk / Complexity** Medium / M
 
-**→ MILESTONE M1** — tag `m1-scene`. Acceptance: `ROADMAP.md` Phase 1.
+**→ MILESTONE M1** — tag `m1-scene` at `cd3e77a`. Acceptance: `ROADMAP.md` Phase 1 — met. (The tag is pushed by a maintainer: session credentials are scoped to the working branch and GitHub refuses tag refs with 403.)
 
 ---
 
