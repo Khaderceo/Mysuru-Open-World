@@ -14,6 +14,7 @@ import { detectCapabilities } from './core/capabilities';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
 import { createScene } from './rendering/Scene';
+import { addValidationScene } from './rendering/validationScene';
 
 const boot = document.getElementById('boot');
 const bootStatus = document.getElementById('boot-status');
@@ -34,6 +35,9 @@ if (!caps.webgl2 || !caps.requestAnimationFrame) {
 } else {
   const scene = createScene();
   const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
+
+  // Temporary Phase-1 validation content, retired by T-2.4 / T-3.10.
+  addValidationScene(scene, camera);
 
   // Renders on demand until T-1.5 owns the loop; without this a resize would leave a
   // stretched frame on screen.

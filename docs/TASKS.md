@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.5**. Next task: **T-1.5a**.
+> **Phase 1 — in progress.** Last done: **T-1.5a**. Next task: **T-1.6**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -56,7 +56,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run test` (loop stepping is unit-testable with an injected time source).
 - **Risk / Complexity** Medium / M
 
-### T-1.5a · Minimal validation scene — `todo`
+### T-1.5a · Minimal validation scene — `done`
 - **Purpose** M1's acceptance requires the page to load **a lit scene with a ground plane and a test box at 60 FPS**, but no Phase 1 task produced renderable content: T-1.2 correctly stops at the scene root, and the grey-box world is Phase 2 (T-2.4). Without this, T-1.5 cannot demonstrate a frame rate, T-1.6's `renderer.info` counters all read zero, and T-1.9's smoke assertion `render.calls > 0` fails. This is the smallest content that makes the Phase 1 rendering path observable.
 - **Deps** T-1.2, T-1.5. **Doc** `ARCHITECTURE.md` §6 (`rendering` owns lights), `ROADMAP.md` Phase 1.
 - **Files** `src/rendering/validationScene.ts`.
