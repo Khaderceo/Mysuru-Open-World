@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — not started.** Next task: **T-1.1**.
+> **Phase 1 — in progress.** Last done: **T-1.1**. Next task: **T-1.2** (blocked pending a `@types/three` decision — see T-1.1 report).
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -16,7 +16,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 
 ## PHASE 1 — Browser technical foundation (M1)
 
-### T-1.1 · Scaffold Vite + TypeScript + Three.js project — `todo`
+### T-1.1 · Scaffold Vite + TypeScript + Three.js project — `done`
 - **Purpose** A buildable, type-checked, deployable shell. Everything else depends on this being right once.
 - **Deps** Phase 0 approval.
 - **Files** `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`, `src/main.ts`, `.prettierrc`, `.gitignore` (verify `dist/`, `.vite/`), `.nvmrc`.
