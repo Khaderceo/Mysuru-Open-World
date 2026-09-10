@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.6**. Next task: **T-1.7**.
+> **Phase 1 — in progress.** Last done: **T-1.7**. Next task: **T-1.8**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -73,12 +73,12 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run build` + grep the bundle for a debug-only marker string.
 - **Risk / Complexity** Low / M
 
-### T-1.7 · Error handling, capability gate and loading screen — `todo`
+### T-1.7 · Error handling, capability gate and loading screen — `done`
 - **Purpose** Never a white screen; never a silent failure.
 - **Deps** T-1.2, T-1.3. **Doc** `ARCHITECTURE.md` §8, `UI_ARCHITECTURE.md` §4.
 - **Files** `src/core/errors.ts`, `src/ui/Loading.ts`, `src/ui/FatalPanel.ts`, `index.html` (static loading markup + CSP meta).
 - **Acceptance** Three error tiers routed through one module; global `onerror`/`unhandledrejection` show the fatal panel and log once with context; a missing WebGL2 context produces the documented panel; the loading screen paints before JS and reports progress with a phase label; a 20 s no-progress watchdog surfaces what is pending. **In Phase 1 progress is driven by system-init step count** (there are no assets yet); byte-weighted asset progress and pending *asset keys* arrive with the asset system in T-2.8, which extends this panel rather than replacing it.
-- **Validation** `npm run test:e2e` (forced null context case).
+- **Validation** `npm run test:e2e` (forced null context case). **Note:** the e2e harness is T-1.9's (`@playwright/test`, `playwright.config.ts`, `tests/e2e/`), so T-1.7 verified this case with the session's zero-dependency CDP harness instead — forcing `getContext('webgl2')` to return null and asserting the panel copy, code, Reload action and single log line. T-1.9 must land it as a committed spec (`BROWSER_COMPATIBILITY.md` §7 requires it).
 - **Risk / Complexity** Low / M
 
 ### T-1.8 · Input system — `todo`

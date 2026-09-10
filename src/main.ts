@@ -5,9 +5,10 @@
 //   T-1.2  renderer + scene + camera        (rendering/)   <- done
 //   T-1.3  Game runtime, systems, context   (core/)        <- done
 //   T-1.5  loop + scheduler                 (core/)        <- done
-//   T-1.7  capability gate + loading screen (core/errors.ts, ui/)
+//   T-1.7  capability gate + loading screen (core/errors.ts, ui/)  <- done
 
 import { Game } from './core/Game';
+import { ErrorReporter, type ErrorReport } from './core/errors';
 import { createConfig } from './core/config';
 import { createInitialState } from './core/state';
 import { detectCapabilities } from './core/capabilities';
@@ -15,42 +16,73 @@ import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
 import { createScene } from './rendering/Scene';
 import { addValidationScene } from './rendering/validationScene';
+import { FatalPanel } from './ui/FatalPanel';
+import { LoadingScreen } from './ui/Loading';
 
 /** `performance.memory` is non-standard; narrowed here rather than cast to any. */
 interface PerformanceWithMemory extends Performance {
   readonly memory?: { readonly usedJSHeapSize: number };
 }
 
-const boot = document.getElementById('boot');
-const bootStatus = document.getElementById('boot-status');
-const canvas = document.getElementById('game');
+/** BROWSER_COMPATIBILITY.md section 2. Guidance only — no external request or link. */
+const NO_WEBGL2_MESSAGE =
+  'This game needs WebGL2. Try the latest Chrome or Edge, and make sure hardware ' +
+  'acceleration is switched on in your browser settings.';
 
-if (!(canvas instanceof HTMLCanvasElement) || !boot || !bootStatus) {
-  // index.html and this file are edited together; a mismatch is a build-time mistake,
-  // not a runtime condition to recover from.
-  throw new Error('main: index.html is missing #game, #boot or #boot-status');
-}
+const NO_RAF_MESSAGE =
+  'This browser is too old to run the game. Please use the latest Chrome, Edge or Firefox.';
 
-const caps = detectCapabilities();
+/**
+ * Wrapped in a function so nothing here is module-level mutable state
+ * (ARCHITECTURE.md section 4, "Forbidden").
+ */
+function bootstrap(): void {
+  const canvas = document.getElementById('game');
+  if (!(canvas instanceof HTMLCanvasElement)) {
+    throw new Error('main: index.html is missing the #game canvas');
+  }
 
-if (!caps.webgl2 || !caps.requestAnimationFrame) {
-  // Placeholder for the fatal panel, which T-1.7 owns along with the real copy.
-  bootStatus.textContent =
-    'This game needs WebGL2. Try Chrome or Edge, and make sure hardware acceleration is on.';
-} else {
+  const loading = new LoadingScreen();
+  const fatalPanel = new FatalPanel();
+
+  // The loop must stop before the panel appears, per ARCHITECTURE.md section 8. `game`
+  // may still be null here — a capability failure happens before it is constructed.
+  let game: Game | null = null;
+  const presentFatal = (report: ErrorReport): void => {
+    game?.stop();
+    loading.hide();
+    fatalPanel.show(report);
+  };
+
+  const errors = new ErrorReporter({ presentFatal });
+  errors.installGlobalHandlers();
+
+  loading.setPhase('Checking your browser');
+  const caps = detectCapabilities();
+
+  if (!caps.webgl2) {
+    errors.fatal('capability.webgl2', NO_WEBGL2_MESSAGE, { webgl2: false });
+    return;
+  }
+  if (!caps.requestAnimationFrame) {
+    errors.fatal('capability.raf', NO_RAF_MESSAGE, { requestAnimationFrame: false });
+    return;
+  }
+
+  loading.setPhase('Starting renderer');
   const scene = createScene();
   const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
 
   // Temporary Phase-1 validation content, retired by T-2.4 / T-3.10.
   addValidationScene(scene, camera);
 
-  // Renders on demand until T-1.5 owns the loop; without this a resize would leave a
-  // stretched frame on screen.
+  // Renders on demand until the loop starts; without this a resize before start would
+  // leave a stretched frame on screen.
   const renderer: Renderer = new Renderer(canvas, camera, {
     onResized: () => renderer.render(scene),
   });
 
-  const game = new Game({
+  game = new Game({
     scene,
     camera,
     config: createConfig(window.location.search),
@@ -75,37 +107,42 @@ if (!caps.webgl2 || !caps.requestAnimationFrame) {
         return (performance as PerformanceWithMemory).memory?.usedJSHeapSize ?? null;
       },
     },
-    // T-1.7 routes this into the loading screen's progress bar.
-    onProgress: ({ completed, total, systemId }) => {
-      bootStatus.textContent = `Starting ${systemId} (${completed}/${total})`;
+    onProgress: ({ completed, total }) => {
+      loading.setProgress(completed, total);
     },
   });
 
-  // No systems are registered yet — each Phase 1/2 task registers its own. Top-level
-  // await needs ES2022, so the async boot is a function (target is ES2020).
+  const started = game;
+
+  // Top-level await needs ES2022, so the async boot is a function (target is ES2020).
   const start = async (): Promise<void> => {
-    await game.initSystems();
+    loading.setPhase('Starting systems');
+    await started.initSystems();
 
     // First render happens before the loading screen is hidden (WEB_ARCHITECTURE
     // section 2, step 6), so the canvas is never shown empty.
+    loading.setPhase('Waking up Mysuru');
     renderer.render(scene);
 
-    // T-1.7 replaces this with the real loading sequence and its progress reporting.
-    boot.hidden = true;
-
-    game.start();
+    loading.hide();
+    started.start();
 
     if (__DEV__) {
       console.info(
-        `[mow] game ready · phase=${game.phase} · running=${String(game.isRunning)} · dpr=${renderer.three.getPixelRatio()} · e2e=${String(__E2E__)}`,
+        `[mow] game ready · phase=${started.phase} · running=${String(started.isRunning)} · dpr=${renderer.three.getPixelRatio()} · e2e=${String(__E2E__)}`,
         caps,
       );
     }
   };
 
-  void start().catch((error: unknown) => {
-    // Placeholder for the fatal panel and its error tiers, which T-1.7 owns.
-    console.error('[mow] boot failed', error);
-    bootStatus.textContent = 'The game failed to start. Please reload.';
+  void start().catch((cause: unknown) => {
+    errors.fatal(
+      'boot.failed',
+      'The game could not finish starting up.',
+      { phase: 'initSystems' },
+      cause,
+    );
   });
 }
+
+bootstrap();

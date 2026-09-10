@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
     <title>Mysuru Open World</title>
     <style>
       /* Minimal shell styling only. The loading screen and its progress reporting
@@ -46,6 +50,30 @@
         margin: 0;
         opacity: 0.6;
       }
+      #boot-progress {
+        width: 220px;
+        height: 3px;
+        margin: 0 auto;
+        overflow: hidden;
+        background: #2b251d;
+        border-radius: 2px;
+      }
+      #boot-bar {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: #c0703a;
+        transition: width 120ms linear;
+      }
+      #boot-stalled:empty {
+        display: none;
+      }
+      #boot-stalled {
+        max-width: 34ch;
+        margin: 0 auto;
+        opacity: 0.75;
+        font-size: 12px;
+      }
       noscript {
         position: fixed;
         inset: 0;
@@ -62,6 +90,8 @@
     <div id="boot">
       <strong>Mysuru Open World</strong>
       <p id="boot-status">Loading…</p>
+      <div id="boot-progress"><span id="boot-bar"></span></div>
+      <p id="boot-stalled"></p>
     </div>
     <noscript>
       <p>This game needs JavaScript and WebGL2. Please enable JavaScript and reload.</p>
