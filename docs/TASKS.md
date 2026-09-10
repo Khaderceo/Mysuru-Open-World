@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.2**. Next task: **T-1.3**.
+> **Phase 1 — in progress.** Last done: **T-1.3**. Next task: **T-1.4**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -32,7 +32,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run build`; manual resize + zoom check.
 - **Risk / Complexity** Low / S
 
-### T-1.3 · Game runtime, system contract and context — `todo`
+### T-1.3 · Game runtime, system contract and context — `done`
 - **Purpose** The skeleton every system plugs into.
 - **Deps** T-1.2. **Doc** `ARCHITECTURE.md` §2–5.
 - **Files** `src/core/Game.ts`, `src/core/System.ts`, `src/core/GameContext.ts`, `src/core/state.ts`, `src/core/config.ts`.
