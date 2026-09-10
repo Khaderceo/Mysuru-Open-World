@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.1**. Next task: **T-1.2** (blocked pending a `@types/three` decision — see T-1.1 report).
+> **Phase 1 — in progress.** Last done: **T-1.2**. Next task: **T-1.3**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -24,7 +24,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run typecheck && npm run build`
 - **Risk / Complexity** Low / S
 
-### T-1.2 · Renderer, scene and resize — `todo`
+### T-1.2 · Renderer, scene and resize — `done`
 - **Purpose** One place that owns the WebGL context, scene root, tone mapping and resize handling.
 - **Deps** T-1.1. **Doc** `PERFORMANCE.md` §5, `WEB_ARCHITECTURE.md` §6–7.
 - **Files** `src/rendering/Renderer.ts`, `src/rendering/Scene.ts`, `src/rendering/camera.ts`, `src/core/capabilities.ts`.
