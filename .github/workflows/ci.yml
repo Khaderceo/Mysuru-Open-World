@@ -33,10 +33,13 @@ jobs:
       - name: Install software OpenGL for Firefox
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0
+          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0 xvfb
 
-      # typecheck -> unit -> build -> static checks -> e2e smoke
-      - run: npm run check
+      # typecheck -> unit -> build -> static checks -> e2e smoke. Xvfb is the display
+      # Firefox's GL providers need before Mesa can give them a context — without one they
+      # exhaust their driver options whatever the prefs say, which is why Playwright's own
+      # Linux images run this way. Chromium ignores it.
+      - run: xvfb-run -a npm run check
         env:
           # Force Mesa to the software path rather than looking for hardware.
           # Chromium is unaffected: its ANGLE/SwiftShader backend does not use Mesa.

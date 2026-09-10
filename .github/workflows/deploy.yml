@@ -39,10 +39,10 @@ jobs:
       - name: Install software OpenGL for Firefox
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0
+          sudo apt-get install -y --no-install-recommends libgl1-mesa-dri libglx-mesa0 libegl-mesa0 xvfb
 
       # A red gate never publishes.
-      - run: npm run check
+      - run: xvfb-run -a npm run check
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
           GALLIUM_DRIVER: llvmpipe

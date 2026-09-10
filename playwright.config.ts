@@ -40,6 +40,10 @@ function firefoxProjects(): { name: string; use: Record<string, unknown> }[] {
           name: 'firefox',
           use: {
             ...devices['Desktop Firefox'],
+            // Headless Firefox has no window for its GL providers to bind to, so WebGL
+            // creation fails however the prefs are set. CI runs the gate under Xvfb and
+            // therefore runs Firefox headed; locally it stays headless.
+            headless: process.env['CI'] === undefined,
             launchOptions: { firefoxUserPrefs: FIREFOX_WEBGL_PREFS },
           },
         },
