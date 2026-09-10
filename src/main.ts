@@ -7,6 +7,7 @@
 //   T-1.5  loop + scheduler                 (core/)        <- done
 //   T-1.7  capability gate + loading screen (core/errors.ts, ui/)  <- done
 //   T-1.8  input snapshot                   (input/)       <- done
+//   T-1.9  e2e read-only hook               (guarded by __E2E__)  <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
@@ -98,10 +99,12 @@ function bootstrap(): void {
     },
   });
 
+  const config = createConfig(window.location.search);
+
   game = new Game({
     scene,
     camera,
-    config: createConfig(window.location.search),
+    config,
     state: createInitialState(),
     // The renderer belongs to `rendering` (T-1.2); the loop calls this once per frame.
     onRender: () => renderer.render(scene),
@@ -150,6 +153,29 @@ function bootstrap(): void {
 
     loading.hide();
     started.start();
+
+    // The one permitted `window` global (ARCHITECTURE.md section 4). Read-only, and
+    // absent from the deployed build because __E2E__ is false there — asserted by
+    // tests/static/e2e-hook-absent.mjs.
+    if (__E2E__ && config.flags['e2e'] !== undefined) {
+      Object.defineProperty(window, '__mow', {
+        value: {
+          get render() {
+            const info = renderer.three.info.render;
+            return { calls: info.calls, triangles: info.triangles };
+          },
+          get canvas() {
+            return { width: canvas.width, height: canvas.height };
+          },
+          get phase() {
+            return started.phase;
+          },
+          get running() {
+            return started.isRunning;
+          },
+        },
+      });
+    }
 
     if (__DEV__) {
       console.info(

@@ -63,7 +63,7 @@ Run against `npm run preview` serving a **test build** — produced by `npm run 
 
 WebGL is enabled via `--use-gl=angle --use-angle=swiftshader` so it works on CI runners without a GPU.
 
-The smoke test **grows with the milestones** — each step below lands with the system it exercises, and is not written before it. Phase 1 (T-1.9) implements steps 1–3, 8 and 9 only:
+The smoke test **grows with the milestones** — each step below lands with the system it exercises, and is not written before it. Phase 1 (T-1.9) implements steps 1–3 and 9 only — step 8 needs the asset system and moved to T-2.8:
 1. Loads the page; asserts the loading screen appears, then disappears within a timeout.
 2. Asserts **zero console errors and zero unhandled rejections** (a strict allowlist for known-benign warnings, reviewed when it changes).
 3. Asserts the canvas has non-zero size and that `renderer.info.render.calls > 0` via an exposed dev hook.

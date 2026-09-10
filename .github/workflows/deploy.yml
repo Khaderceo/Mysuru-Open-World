@@ -1,0 +1,56 @@
+# Publishes to GitHub Pages, but only after a green gate (DEPLOYMENT.md §3).
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Rapid pushes must not race each other onto the live site.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      # A red gate never publishes.
+      - run: npm run check
+
+      # The gate's e2e step leaves dist/ as the __E2E__ build, so the deployed artifact is
+      # built fresh here with __E2E__ false. tests/static/e2e-hook-absent.mjs is what
+      # proves the test hook is not in it.
+      - name: Build for deployment
+        run: |
+          npm run build
+          npm run check:static
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

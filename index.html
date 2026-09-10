@@ -3,6 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Browsers request /favicon.ico unprompted, which 404s on a static host. An empty
+         data URI suppresses the request without shipping an asset or reaching the network.
+         A real icon is a Phase-4 art item. -->
+    <link rel="icon" href="data:," />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'none'; form-action 'none'"
@@ -36,6 +40,11 @@
         position: fixed;
         inset: 0;
         pointer-events: none;
+      }
+      /* `display: grid` below outranks the UA's `[hidden] { display: none }`, so hiding
+         the loading screen needs this rule to actually take effect. */
+      #boot[hidden] {
+        display: none;
       }
       #boot {
         position: fixed;

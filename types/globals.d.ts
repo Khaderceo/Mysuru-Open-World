@@ -13,3 +13,12 @@ declare const __E2E__: boolean;
  * which is not in the approved dependency set (DECISIONS.md ADR-013).
  */
 declare const process: { readonly env: Readonly<Record<string, string | undefined>> };
+
+/**
+ * Minimal `node:fs` surface used by playwright.config.ts to detect which browsers this
+ * environment actually has installed. Declared here for the same reason as `process`
+ * above: `@types/node` is not in the approved dependency set (DECISIONS.md ADR-013).
+ */
+declare module 'node:fs' {
+  export function existsSync(path: string): boolean;
+}
