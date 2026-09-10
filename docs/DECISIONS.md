@@ -142,14 +142,15 @@ All ADRs below are **Proposed** pending explicit architecture approval (`PROJECT
 
 ## ADR-013 · Zero runtime dependencies beyond `three`; ADR required for any addition
 
-- **Decision** `three` is the only runtime dependency. Dev dependencies limited to `vite`, `typescript`, `prettier`, `vitest`, `@playwright/test`. ESLint deferred.
+- **Decision** `three` is the only runtime dependency. Dev dependencies limited to `vite`, `typescript`, `prettier`, `vitest`, `@playwright/test` and **`@types/three`**. ESLint deferred.
 - **Recommendation** Accept.
+- **Amended 2026-09-10 (approved):** `@types/three` added as a dev dependency, pinned `0.185.4`. `three@0.186.0` ships no declarations of its own, so this is a prerequisite for the strict-TypeScript decision this project already made — without it every `three` import is an implicit `any` and `CODING_RULES.md` §1 becomes unenforceable. Types-only: nothing from it reaches the bundle, so **the runtime dependency count remains 1**. Verified against TypeScript 7.0.2 with the full strict flag set over the renderer/scene/camera/instancing surface. Two caveats, both recorded in `TECH_STACK.md` §4: the types lag `three` by one minor (safe direction — a missing declaration breaks the build loudly; it cannot silently declare a non-existent API), and the package drags six transitive packages into `node_modules`, two of which (`@dimforge/rapier3d-compat`, `@tweenjs/tween.js`) are on the standing ban list. Their presence is a typing artefact of the `examples/jsm` coverage and is **not** permission to use them; ADR-004 still rejects Rapier.
 - **Alternatives** Adopt utility libraries freely; add ESLint + plugins now.
 - **Reason** Every dependency is bundle weight, a maintenance surface, a licence question and a token cost. `tsc --strict` + Prettier + the static checks + `CODING_RULES.md` cover ESLint's real value here at a fraction of the configuration cost.
 - **Performance** Smallest possible bundle.
 - **Complexity** We write small utilities (RNG, pools, easing, assert) — tens of lines each.
 - **Cost** Zero.
-- **Consequences** Proposals must answer the seven questions in `TECH_STACK.md` §4. Standing bans listed there.
+- **Consequences** Proposals must answer the seven questions in `TECH_STACK.md` §4. Standing bans listed there. A dev dependency that exists only to type an approved runtime dependency (as `@types/three` does) is treated as part of that dependency rather than as a new one — but it is still pinned, still recorded here, and its transitive tree is still reviewed against the bans.
 
 ## ADR-014 · Visual direction: stylized realism, mid-poly, colour- and light-led
 

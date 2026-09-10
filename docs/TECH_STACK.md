@@ -18,7 +18,9 @@ Decisions recorded formally in `DECISIONS.md` (ADR-001 … ADR-005). This docume
 | Physics / collision | **Custom lightweight collision** | No physics engine; see `PLAYER_ARCHITECTURE.md` §Collision |
 | Hosting | **GitHub Pages** via GitHub Actions | Cloudflare Pages as documented fallback |
 
-**Runtime dependency count: 1** — `three`.
+**Runtime dependency count: 1** — `three` (pinned `0.186.0`).
+
+`three` ships **no TypeScript declarations of its own** (no `types` field, no `.d.ts` in its `build/`), so strict typing requires the DefinitelyTyped package `@types/three` as a **dev** dependency. It is types-only: nothing from it reaches the bundle, and the runtime dependency count is unchanged. See §4 and `DECISIONS.md` ADR-013.
 
 Everything else in the game (loop, input, camera, collision, streaming, AI, missions, UI, minimap, audio graph, save) is project code over browser APIs.
 
@@ -67,9 +69,14 @@ Dev dependencies (build/test only, never shipped) follow a lighter bar but are s
 |---|---|---|
 | `vite` | dev server + production build | no |
 | `typescript` | type checking (`tsc --noEmit`) | no |
+| `@types/three` | TypeScript declarations for `three`, which ships none | no — types only |
 | `prettier` | formatting, to keep diffs (and token cost) small | no |
 | `vitest` | unit tests for pure logic | no |
 | `@playwright/test` | headless smoke/perf test of the built page | no |
+
+**`@types/three` version policy.** DefinitelyTyped tracks `three` by minor version but publishes on its own schedule, so an exact match is not always available: at the time of adoption the newest was **`0.185.4`** against `three@0.186.0` — one minor behind. This is accepted because the drift direction is safe: the types may *lack* an r186 addition, which fails the build immediately and visibly, rather than *declaring* something the runtime does not have, which would fail silently. Pin both exactly, and when raising `three`, raise `@types/three` to the closest published version at or below it and re-run `npm run typecheck`.
+
+**`@types/three` pulls transitive packages, and two are on the banned list below.** Installing it adds `@dimforge/rapier3d-compat`, `@tweenjs/tween.js`, `fflate`, `meshoptimizer`, `@types/webxr` and `@types/stats.js` to `node_modules`, because the types cover `three/examples/jsm` addons that reference them. **Their presence is not permission to use them.** They are unreachable from the bundle unless an addon that needs them is imported, which the standing bans forbid. Rapier in particular remains rejected by ADR-004 — its appearance in `package-lock.json` is a typing artefact, not an adopted dependency.
 
 **ESLint is deliberately deferred.** `tsc --strict` plus Prettier plus `CODING_RULES.md` cover the value at a fraction of the config, plugin and CI cost. Reconsider only if a class of real bug recurs that types cannot catch.
 
