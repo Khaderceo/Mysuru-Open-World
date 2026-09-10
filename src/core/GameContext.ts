@@ -5,6 +5,7 @@
 // fetched via `get()`.
 
 import type { PerspectiveCamera, Scene } from 'three';
+import type { Clock } from './Clock';
 import type { EventBus } from './EventBus';
 import type { Config } from './config';
 import type { GameState } from './state';
@@ -15,10 +16,10 @@ import type { System, SystemId } from './System';
  *
  * The remaining `unknown` aliases exist because T-1.3 owns none of those designs: the
  * owning task replaces the alias with its real type in one line and every consumer
- * keeps working. `events` is now real (T-1.4) and Game registers it at construction,
- * so reading `ctx.events` never throws.
+ * keeps working. `events` (T-1.4) and `clock` (T-1.5) are now real and Game registers
+ * both at construction, so reading them never throws.
  */
-export type ClockPort = unknown; // TODO(T-1.5): replace with Clock
+export type ClockPort = Clock;
 export type EventBusPort = EventBus;
 export type PhysicsPort = unknown; // TODO(T-2.1): replace with CollisionWorld
 export type AssetsPort = unknown; // TODO(T-2.8): replace with AssetSystem

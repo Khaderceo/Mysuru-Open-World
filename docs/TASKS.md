@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — in progress.** Last done: **T-1.4**. Next task: **T-1.5**.
+> **Phase 1 — in progress.** Last done: **T-1.5**. Next task: **T-1.5a**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -48,7 +48,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run test`
 - **Risk / Complexity** Low / S
 
-### T-1.5 · Game loop and scheduler — `todo`
+### T-1.5 · Game loop and scheduler — `done`
 - **Purpose** The hybrid fixed/variable loop and per-system rates.
 - **Deps** T-1.3. **Doc** `WEB_ARCHITECTURE.md` §3–5, ADR-012.
 - **Files** `src/core/Loop.ts`, `src/core/Scheduler.ts`, `src/core/Clock.ts`, `tests/unit/loop.test.ts`.

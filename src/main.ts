@@ -4,7 +4,7 @@
 // The real bootstrap lands incrementally:
 //   T-1.2  renderer + scene + camera        (rendering/)   <- done
 //   T-1.3  Game runtime, systems, context   (core/)        <- done
-//   T-1.5  loop + scheduler                 (core/)
+//   T-1.5  loop + scheduler                 (core/)        <- done
 //   T-1.7  capability gate + loading screen (core/errors.ts, ui/)
 
 import { Game } from './core/Game';
@@ -46,6 +46,8 @@ if (!caps.webgl2 || !caps.requestAnimationFrame) {
     camera,
     config: createConfig(window.location.search),
     state: createInitialState(),
+    // The renderer belongs to `rendering` (T-1.2); the loop calls this once per frame.
+    onRender: () => renderer.render(scene),
     // T-1.7 routes this into the loading screen's progress bar.
     onProgress: ({ completed, total, systemId }) => {
       bootStatus.textContent = `Starting ${systemId} (${completed}/${total})`;
@@ -57,14 +59,18 @@ if (!caps.webgl2 || !caps.requestAnimationFrame) {
   const start = async (): Promise<void> => {
     await game.initSystems();
 
+    // First render happens before the loading screen is hidden (WEB_ARCHITECTURE
+    // section 2, step 6), so the canvas is never shown empty.
     renderer.render(scene);
 
     // T-1.7 replaces this with the real loading sequence and its progress reporting.
     boot.hidden = true;
 
+    game.start();
+
     if (__DEV__) {
       console.info(
-        `[mow] game ready · phase=${game.phase} · dpr=${renderer.three.getPixelRatio()} · e2e=${String(__E2E__)}`,
+        `[mow] game ready · phase=${game.phase} · running=${String(game.isRunning)} · dpr=${renderer.three.getPixelRatio()} · e2e=${String(__E2E__)}`,
         caps,
       );
     }
