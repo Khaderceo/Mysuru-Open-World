@@ -56,9 +56,18 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Validation** `npm run test` (loop stepping is unit-testable with an injected time source).
 - **Risk / Complexity** Medium / M
 
+### T-1.5a · Minimal validation scene — `todo`
+- **Purpose** M1's acceptance requires the page to load **a lit scene with a ground plane and a test box at 60 FPS**, but no Phase 1 task produced renderable content: T-1.2 correctly stops at the scene root, and the grey-box world is Phase 2 (T-2.4). Without this, T-1.5 cannot demonstrate a frame rate, T-1.6's `renderer.info` counters all read zero, and T-1.9's smoke assertion `render.calls > 0` fails. This is the smallest content that makes the Phase 1 rendering path observable.
+- **Deps** T-1.2, T-1.5. **Doc** `ARCHITECTURE.md` §6 (`rendering` owns lights), `ROADMAP.md` Phase 1.
+- **Files** `src/rendering/validationScene.ts`.
+- **Acceptance** One function that populates the existing scene root from T-1.2 with a hemisphere + directional light, a ground plane and a single test box at correct 1 m scale; reuses the T-1.2 renderer, scene and camera and **constructs no renderer, scene or camera of its own**; ≤4 draw calls; no colliders and no input (physics is T-2.1) — this is a render-path probe, not a playground. **Not `__DEV__`-gated:** it is the visible Phase 1 deliverable and must be present in the deployed build for M1 and for T-1.9's smoke assertion, which distinguishes it from T-2.4's `__DEV__`+URL-flagged `TestWorld`.
+- **Retirement (so it never becomes a duplicate system)** Superseded in two steps: **T-2.4** replaces its geometry with `world/TestWorld.ts`, **T-3.10** replaces its lighting with `rendering/Lighting.ts` and **deletes this file**. It is placeholder scaffolding under `ASSET_PLAN.md` §10, not a system.
+- **Validation** manual (a lit box on a ground plane is visible in the built page) + the frame-time readout once T-1.6 lands.
+- **Risk / Complexity** Low / S
+
 ### T-1.6 · Debug overlay and diagnostics — `todo`
 - **Purpose** Build the instrument panel before the machine. Every later bug is diagnosed with this.
-- **Deps** T-1.5. **Doc** `PERFORMANCE.md` §7, `TESTING_STRATEGY.md` §9.
+- **Deps** T-1.5, T-1.5a (the counters need something to count). **Doc** `PERFORMANCE.md` §7, `TESTING_STRATEGY.md` §9.
 - **Files** `src/debug/Overlay.ts`, `src/debug/gizmos.ts`, `src/debug/index.ts`.
 - **Acceptance** Shows FPS, frame-time p95/max, `renderer.info` counters, texture-memory estimate, heap where available, and the per-system timing table; toggled with a key and a URL flag; entirely behind `__DEV__` and **absent from the production bundle** (asserted by a build check); nothing in `src/` imports `debug/` except the guarded hook in `core/`.
 - **Validation** `npm run build` + grep the bundle for a debug-only marker string.
@@ -123,7 +132,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** A controlled environment for tuning feel before the real city exists.
 - **Deps** T-2.1, T-1.2.
 - **Files** `src/world/TestWorld.ts`, `src/data/testWorld.ts`.
-- **Acceptance** A flat ground plane with kerbs (0.15/0.35/0.5 m), ramps (20/45/50°), a stair run, narrow gaps, a wall corner, a moving platform-free box grid, and a reference 1.8 m human proxy for scale; all colliders registered; ≤10 draw calls; removable in one commit later (it is dev content, kept behind `__DEV__` and a URL flag).
+- **Acceptance** A flat ground plane with kerbs (0.15/0.35/0.5 m), ramps (20/45/50°), a stair run, narrow gaps, a wall corner, a moving platform-free box grid, and a reference 1.8 m human proxy for scale; all colliders registered; ≤10 draw calls; removable in one commit later (it is dev content, kept behind `__DEV__` and a URL flag). **Also removes the geometry half of T-1.5a's validation scene** (its ground plane and test box) in the same commit, so there is never a second ground plane; T-1.5a's lighting stays until T-3.10.
 - **Validation** manual.
 - **Risk / Complexity** Low / S
 
@@ -249,7 +258,7 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Purpose** The district looks like a place, and the draw distance is bounded.
 - **Deps** T-1.2. **Doc** `WORLD_DESIGN.md` §8, `PERFORMANCE.md` §5.
 - **Files** `src/rendering/Lighting.ts`, `src/rendering/Sky.ts`.
-- **Acceptance** One directional sun + hemisphere ambient; 2048² shadow map fitted to a 120 m box around the player and **texel-snapped** (no shimmer while walking); gradient sky dome; exp²  fog matched to the sky horizon at ~250 m; ACESFilmic tone mapping; all values in data.
+- **Acceptance** One directional sun + hemisphere ambient; 2048² shadow map fitted to a 120 m box around the player and **texel-snapped** (no shimmer while walking); gradient sky dome; exp²  fog matched to the sky horizon at ~250 m; ACESFilmic tone mapping; all values in data. **Deletes `src/rendering/validationScene.ts` in the same commit** — this is the real lighting that supersedes it, and two lighting setups must never coexist.
 - **Validation** manual + shadow-shimmer check while walking.
 - **Risk / Complexity** Medium / M
 

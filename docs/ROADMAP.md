@@ -20,8 +20,8 @@ Task ids reference `TASKS.md`. Milestones (M1–M10) are the demonstrable checkp
 
 - **Objective** A deployable Vite/TS/Three.js application with the runtime skeleton, loop, scheduler, error handling, debug overlay and CI.
 - **Dependencies** Phase 0 approval.
-- **Tasks** T-1.1 … T-1.9.
-- **Acceptance** `npm run check` passes; the page loads a lit scene with a ground plane and a test box at 60 FPS; the debug overlay shows FPS, draw calls, triangles; a WebGL2-missing panel works; CI green; deployed to GitHub Pages and loading from the subpath.
+- **Tasks** T-1.1 … T-1.9, including **T-1.5a** (the minimal validation scene that makes the acceptance below observable).
+- **Acceptance** `npm run check` passes; the page loads a lit scene with a ground plane and a test box at 60 FPS (**T-1.5a**, retired by T-2.4/T-3.10); the debug overlay shows FPS, draw calls, triangles; a WebGL2-missing panel works; CI green; deployed to GitHub Pages and loading from the subpath.
 - **Risk** Low. **Complexity** Low–Medium.
 - **Postponed** Everything gameplay.
 
