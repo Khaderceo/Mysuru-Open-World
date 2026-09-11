@@ -50,10 +50,29 @@ jobs:
       # The gate's e2e step leaves dist/ as the __E2E__ build, so the deployed artifact is
       # built fresh here with __E2E__ false. tests/static/e2e-hook-absent.mjs is what
       # proves the test hook is not in it.
+      #
+      # One exception, for a temporary manual test deployment: a `workflow_dispatch` from a
+      # branch other than `main` builds in e2e mode instead. The grey-box world (T-2.4) is
+      # gated on `__DEV__ || __E2E__`, and both are false in a production build, so a
+      # normal build of a feature branch deploys a scene with nothing in it to play — no
+      # use for the manual sign-off T-2.7 needs. That build deliberately carries the
+      # `?e2e=1` hook, so the absence check does not apply to it; the gate above has
+      # already run that same check against a production build of this commit.
+      #
+      # Pushes to `main` take the else branch and are completely unaffected, as is a manual
+      # dispatch of `main` itself — so this stays inert for production even if the branch
+      # carrying it is merged.
       - name: Build for deployment
+        env:
+          TEST_DEPLOY: ${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' }}
         run: |
-          npm run build
-          npm run check:static
+          if [ "$TEST_DEPLOY" = 'true' ]; then
+            echo "Temporary test deployment from ${{ github.ref }}: building in e2e mode."
+            npm run build:e2e
+          else
+            npm run build
+            npm run check:static
+          fi
 
       - uses: actions/configure-pages@v5
 
