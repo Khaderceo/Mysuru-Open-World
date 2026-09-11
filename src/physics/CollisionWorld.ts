@@ -10,9 +10,9 @@
 import type { Vector3 } from 'three';
 import { UniformGrid } from '../utils/grid';
 import type { GroundSample, TerrainHeightFn } from './ground';
-import { FLAT_TERRAIN, sampleGround } from './ground';
+import { FLAT_TERRAIN, sampleGround, stepUpTo } from './ground';
 import type { Capsule, SweepResult } from './sweep';
-import { sweepCapsule } from './sweep';
+import { isCapsuleFree, sweepCapsule } from './sweep';
 import type { GridFootprint } from '../utils/grid';
 import type {
   Collider,
@@ -55,6 +55,9 @@ export interface ColliderDebugShape {
   sin: number;
   rise: number;
 }
+
+/** Reused by the step-up fit test, so a probe allocates nothing. */
+const _fitProbe: Capsule = { x: 0, y: 0, z: 0, radius: 0, height: 0 };
 
 /** Reused by `forEachCollider`; the visitor must not retain it. */
 const _debugShape: ColliderDebugShape = {
@@ -189,6 +192,38 @@ export class CollisionWorld {
    */
   sweepCapsule(cap: Capsule, dx: number, dy: number, dz: number, out: SweepResult): void {
     sweepCapsule(this, cap, dx, dy, dz, this.sweepCandidates, out);
+  }
+
+  /**
+   * Where a capsule's feet must go to climb onto the surface at `targetX, targetZ`, or
+   * `-Infinity` if it cannot (PLAYER_ARCHITECTURE.md §3 step-up). Lives here rather than
+   * on the caller because the terrain function and the narrowphase are both this class's.
+   */
+  stepUpTo(
+    cap: Capsule,
+    targetX: number,
+    targetZ: number,
+    maxStep: number,
+    out: GroundSample,
+  ): number {
+    return stepUpTo(
+      this,
+      this.terrain,
+      cap,
+      targetX,
+      targetZ,
+      maxStep,
+      this.sweepCandidates,
+      out,
+      (x, y, z) => {
+        _fitProbe.x = x;
+        _fitProbe.y = y;
+        _fitProbe.z = z;
+        _fitProbe.radius = cap.radius;
+        _fitProbe.height = cap.height;
+        return isCapsuleFree(this, _fitProbe, this.sweepCandidates);
+      },
+    );
   }
 
   /**

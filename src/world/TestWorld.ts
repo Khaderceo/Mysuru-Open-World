@@ -34,10 +34,19 @@ import type { System } from '../core/System';
 import { physicsOf } from '../physics/PhysicsSystem';
 import type { CollisionWorld } from '../physics/CollisionWorld';
 import type { ColliderOwner } from '../physics/shapes';
-import { GROUND_HALF, HUMAN_PROXY, TEST_WORLD_PIECES, type GreyBoxPiece } from '../data/testWorld';
+import {
+  GROUND_HALF,
+  HUMAN_PROXY,
+  TEST_SPAWN,
+  TEST_WORLD_PIECES,
+  type GreyBoxPiece,
+} from '../data/testWorld';
 
 /** URL flag that builds the playground, e.g. `?testworld=1`. */
 export const TEST_WORLD_FLAG = 'testworld';
+
+/** Re-exported so the bootstrap can spawn the player here without importing dev data. */
+export const TEST_WORLD_SPAWN = TEST_SPAWN;
 
 /** Every collider is registered under this owner, so teardown is one call. */
 const OWNER: ColliderOwner = 'test_world';

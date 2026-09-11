@@ -6,7 +6,7 @@
 //
 // **Every field names its single owning system. Anything else mutating it is a bug.**
 // Each owning task adds its own branch here as it lands; the branches still missing are
-// player + camera transforms (T-2.5 / T-2.6), inventory + missions (T-8.3 / T-8.4),
+// the camera transform (T-2.6), inventory + missions (T-8.3 / T-8.4),
 // discovered anchors (T-8.8), vehicles (T-5.7) and settings (T-10.7). They are absent
 // rather than stubbed because their id types belong to those tasks.
 
@@ -31,6 +31,15 @@ export interface GameState {
     totalEarned: number;
   };
 
+  /** Owner: player/PlayerSystem (T-2.5). Its `publish()` is the only writer. */
+  player: {
+    /** Feet position, metres. */
+    position: { x: number; y: number; z: number };
+    /** Facing, radians. */
+    yaw: number;
+    isDriving: boolean;
+  };
+
   /** Owner: missions (T-8.4) for gameplay flags; read by anyone. */
   flags: Record<string, boolean>;
 }
@@ -46,6 +55,7 @@ export function createInitialState(): GameState {
     schema: STATE_SCHEMA_VERSION,
     time: { hour: 8, dayCount: 0, paused: false },
     economy: { money: 0, totalEarned: 0 },
+    player: { position: { x: 0, y: 0, z: 0 }, yaw: 0, isDriving: false },
     flags: {},
   };
 }

@@ -9,6 +9,7 @@
 //   T-1.8  input snapshot                   (input/)       <- done
 //   T-1.9  e2e read-only hook               (guarded by __E2E__)  <- done
 //   T-2.4  collision world owner + grey-box playground (physics/, world/)  <- done
+//   T-2.5  player controller                 (player/)      <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
@@ -17,6 +18,7 @@ import { createInitialState } from './core/state';
 import { detectCapabilities } from './core/capabilities';
 import { InputSystem } from './input/InputSystem';
 import { PhysicsSystem } from './physics/PhysicsSystem';
+import { PlayerSystem } from './player/PlayerSystem';
 import { formatInputState } from './input/InputState';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
@@ -153,10 +155,16 @@ function bootstrap(): void {
     // imported inside the guard so production drops the module graph, the same way the
     // debug overlay is kept out. `__E2E__` is in the gate because the smoke test asserts
     // the render path drew something and this is now the only content in the scene.
+    let spawn: readonly [number, number, number] = [0, 0, 0];
     if ((__DEV__ || __E2E__) && config.flags['testworld'] !== undefined) {
-      const { TestWorld } = await import('./world/TestWorld');
+      const { TestWorld, TEST_WORLD_SPAWN } = await import('./world/TestWorld');
       started.register(new TestWorld());
+      spawn = TEST_WORLD_SPAWN;
     }
+
+    // The player is not dev content, but where it starts depends on whether the grey-box
+    // world is there to stand on, so it is constructed after that decision (T-2.5).
+    started.register(new PlayerSystem({ spawn }));
 
     loading.setPhase('Starting systems');
     await started.initSystems();
