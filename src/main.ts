@@ -8,6 +8,7 @@
 //   T-1.7  capability gate + loading screen (core/errors.ts, ui/)  <- done
 //   T-1.8  input snapshot                   (input/)       <- done
 //   T-1.9  e2e read-only hook               (guarded by __E2E__)  <- done
+//   T-2.4  collision world owner + grey-box playground (physics/, world/)  <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
@@ -15,6 +16,7 @@ import { createConfig } from './core/config';
 import { createInitialState } from './core/state';
 import { detectCapabilities } from './core/capabilities';
 import { InputSystem } from './input/InputSystem';
+import { PhysicsSystem } from './physics/PhysicsSystem';
 import { formatInputState } from './input/InputState';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
@@ -139,10 +141,23 @@ function bootstrap(): void {
   // Registered first, so it initialises before anything that reads its snapshot.
   game.register(input);
 
+  // Owns the one collision world (T-2.4). Registered before anything that queries it,
+  // since systems initialise in registration order.
+  game.register(new PhysicsSystem());
+
   const started = game;
 
   // Top-level await needs ES2022, so the async boot is a function (target is ES2020).
   const start = async (): Promise<void> => {
+    // Grey-box playground (T-2.4): dev and e2e only, behind `?testworld=1`. Dynamically
+    // imported inside the guard so production drops the module graph, the same way the
+    // debug overlay is kept out. `__E2E__` is in the gate because the smoke test asserts
+    // the render path drew something and this is now the only content in the scene.
+    if ((__DEV__ || __E2E__) && config.flags['testworld'] !== undefined) {
+      const { TestWorld } = await import('./world/TestWorld');
+      started.register(new TestWorld());
+    }
+
     loading.setPhase('Starting systems');
     await started.initSystems();
 

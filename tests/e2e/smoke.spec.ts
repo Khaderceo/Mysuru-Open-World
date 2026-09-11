@@ -49,7 +49,9 @@ function collect(page: Page): Collected {
 
 test('boots cleanly, renders, and exposes the e2e hook', async ({ page }, testInfo) => {
   const collected = collect(page);
-  await page.goto('?e2e=1');
+  // `testworld=1` builds T-2.4's grey-box content: it replaced T-1.5a's test box, so it
+  // is what the "did the renderer draw" assertion below now looks at.
+  await page.goto('?e2e=1&testworld=1');
 
   // 1. The loading screen is static markup, so it is always in the DOM; it must go away.
   const boot = page.locator('#boot');
