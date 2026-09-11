@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 2 — in progress.** Phase 1/M1 is deployed at https://khaderceo.github.io/Mysuru-Open-World/ from `cd3e77a` (deploy run 34519580933). Last done: **T-2.1**. Next task: **T-2.2**.
+> **Phase 2 — code complete; M2 tag pending a manual sign-off.** T-2.1…T-2.9 are landed and green; T-2.7's feel checklist and M2's C1–C8 both need a person at the keyboard (`?testworld=1`). Phase 1/M1 is deployed at https://khaderceo.github.io/Mysuru-Open-World/ from `cd3e77a`. Last done: **T-2.9**. Next task: **T-3.1**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -188,15 +188,18 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Still owed** `TESTING_STRATEGY.md` §5 step 8 (a 404'd *optional* asset produces a notice, not a crash) was moved here by T-1.9, but it cannot be written yet: with an empty manifest there is no optional asset to 404. The degraded path it would exercise is unit-tested; the e2e step belongs with the first real tier-1 asset.
 - **Risk / Complexity** Medium / M
 
-### T-2.9 · Guard tests for the six known failure modes — `todo`
+### T-2.9 · Guard tests for the six known failure modes — `done`
 - **Purpose** Lock in the fixes for the classic controller bugs.
 - **Deps** T-2.2, T-2.5. **Doc** `PLAYER_ARCHITECTURE.md` §9.
 - **Files** `tests/unit/player-guards.test.ts`, `src/physics/*` (guards).
 - **Acceptance** Tests for: ground floor clamp; push-out when a collider is inserted overlapping the player; no-progress corner nudge; clamped vehicle push with no vertical impulse; sub-stepped tunnelling; spawn validation finds a free position.
-- **Validation** `npm run test`
+- **Landed** `physics/guards.ts` (`floorLimit`, `clampPush`, `findFreeSpawn`), the corner nudge in `sweep.ts`, `CollisionWorld.floorLimit` / `findFreeSpawn`, and `tests/unit/player-guards.test.ts` (15 cases, one group per failure mode). The player now clamps to the floor as the last act of every ground resolve, and validates its spawn at init.
+- **Where each guard lives** ground floor clamp → `guards.floorLimit`, applied last in `PlayerSystem.resolveGround` so nothing can undo it; push-out after a chunk build → `sweep.resolvePenetration`, which the sweep already runs each sub-step; corner nudge → `sweep.nudgeIfStuck`; clamped vehicle push → `guards.clampPush`; tunnelling → `sweep.SUBSTEP_RADIUS_FRACTION`; spawn validation → `guards.findFreeSpawn`.
+- **One design decision worth recording** the corner nudge keys off *actual penetration after the four iterations*, not off `noProgress`. Walking into a wall makes no progress by design, and nudging there would produce exactly the jitter this guard exists to prevent — so the two conditions are separate, and a test pins the distinction.
+- **`clampPush` has no caller yet** the vehicle-vs-player push is T-5.6's; the guard and its test exist now so that task cannot reinvent it unclamped.
 - **Risk / Complexity** Medium / M
 
-**→ MILESTONE M2** — tag `m2-player`. Acceptance: `MVP_ACCEPTANCE.md` C1–C8.
+**→ MILESTONE M2** — tag `m2-player`. Acceptance: `MVP_ACCEPTANCE.md` C1–C8. **Not tagged:** T-2.7's sign-off is still open (four items need a person playing the grey-box world), and C1–C8 is a manual checklist of the same kind. Every T-2 task's code is landed and green.
 
 ---
 

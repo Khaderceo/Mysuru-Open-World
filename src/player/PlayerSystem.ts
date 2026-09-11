@@ -73,6 +73,9 @@ export interface PlayerVisualDrive {
 /** How far ahead of the capsule a step-up is probed. */
 const STEP_PROBE = 0.1;
 
+/** Scratch for the spawn search's answer. */
+const _freeSpot = { x: 0, y: 0, z: 0 };
+
 export class PlayerSystem implements System {
   readonly id = 'player' as const;
 
@@ -137,6 +140,14 @@ export class PlayerSystem implements System {
     // Stand on whatever is under the spawn point rather than trusting the authored y.
     this.sampleGroundHere();
     if (this.ground.y > this.capsule.y - PLAYER.stepUp) this.capsule.y = this.ground.y;
+
+    // Guard 6 of PLAYER_ARCHITECTURE.md §9: never start inside geometry. A spawn placed
+    // in a wall is moved to the nearest position the capsule actually fits.
+    if (this.world.findFreeSpawn(this.capsule, this.capsule.radius * 2, _freeSpot)) {
+      this.capsule.x = _freeSpot.x;
+      this.capsule.y = _freeSpot.y;
+      this.capsule.z = _freeSpot.z;
+    }
     this.current.set(this.capsule.x, this.capsule.y, this.capsule.z);
     this.previous.copy(this.current);
     this.mutableView.position.copy(this.current);
@@ -360,6 +371,19 @@ export class PlayerSystem implements System {
     if (this.grounded) this.timeSinceGrounded = 0;
     this.grounded = false;
     this.timeSinceGrounded += dt;
+
+    // Guard 1 of PLAYER_ARCHITECTURE.md §9: whatever else happened this step, the feet
+    // are never below the analytic floor. Applied last so nothing can undo it.
+    const floor = this.world?.floorLimit(
+      this.capsule.x,
+      this.capsule.z,
+      this.capsule.y + this.capsule.height,
+      this.ground,
+    );
+    if (floor !== undefined && this.capsule.y < floor) {
+      this.capsule.y = floor;
+      if (this.velocity.y < 0) this.velocity.y = 0;
+    }
   }
 
   private sampleGroundHere(): void {

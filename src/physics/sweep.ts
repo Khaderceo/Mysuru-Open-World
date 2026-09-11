@@ -48,8 +48,14 @@ export interface SweepResult {
   y: number;
   z: number;
   hit: boolean;
-  /** Set when the resolver could not make headway — T-2.9's corner nudge reads this. */
+  /**
+   * Requested motion that achieved almost nothing. Expected when walking into a wall —
+   * it is not on its own a sign of being stuck, which is why the corner nudge below keys
+   * off actual penetration instead.
+   */
   noProgress: boolean;
+  /** Set when the corner nudge fired: the resolver had run out of iterations (§9). */
+  nudged: boolean;
   contactCount: number;
   readonly contacts: Contact[];
 }
@@ -77,7 +83,16 @@ export function createCapsule(radius = 0.35, height = 1.8): Capsule {
 export function createSweepResult(): SweepResult {
   const contacts: Contact[] = [];
   for (let i = 0; i < MAX_CONTACTS; i++) contacts.push({ id: -1, nx: 0, ny: 0, nz: 0, depth: 0 });
-  return { x: 0, y: 0, z: 0, hit: false, noProgress: false, contactCount: 0, contacts };
+  return {
+    x: 0,
+    y: 0,
+    z: 0,
+    hit: false,
+    noProgress: false,
+    nudged: false,
+    contactCount: 0,
+    contacts,
+  };
 }
 
 export function createPenetration(): Penetration {
@@ -191,6 +206,7 @@ export function resolvePenetration(
   out.contactCount = 0;
   out.hit = false;
   out.noProgress = false;
+  out.nudged = false;
 
   // Copied: a query never moves its caller's capsule, only reports where it should go.
   const working: Capsule = {
@@ -210,11 +226,61 @@ export function resolvePenetration(
     recordContact(out, id, _deepest);
   }
 
+  nudgeIfStuck(query, working, candidates, out);
+
   out.x = working.x;
   out.y = working.y;
   out.z = working.z;
   out.hit = out.contactCount > 0;
   return out.contactCount;
+}
+
+/**
+ * Guard 3 of PLAYER_ARCHITECTURE.md §9 — stuck in a corner.
+ *
+ * Four iterations of push-out resolve every ordinary contact. What they cannot resolve is
+ * a wedge, where each push moves the capsule into the other surface: the resolver runs out
+ * of iterations with the body still overlapping. The escape is a nudge along the bisector
+ * of the contact normals, which is the one direction that leads out of a wedge.
+ *
+ * Keyed off actual penetration, not off `noProgress`: walking into a wall makes no
+ * progress by design, and nudging every time would be the jitter this guard exists to
+ * prevent.
+ */
+function nudgeIfStuck(
+  query: ColliderQuery,
+  working: Capsule,
+  candidates: ColliderId[],
+  out: SweepResult,
+): void {
+  if (out.contactCount < 2) return;
+  if (isCapsuleFree(query, working, candidates)) return;
+
+  let bisectorX = 0;
+  let bisectorY = 0;
+  let bisectorZ = 0;
+  for (let i = 0; i < out.contactCount; i++) {
+    const contact = out.contacts[i];
+    if (contact === undefined) continue;
+    bisectorX += contact.nx;
+    bisectorY += contact.ny;
+    bisectorZ += contact.nz;
+  }
+
+  const length = Math.hypot(bisectorX, bisectorY, bisectorZ);
+  if (length < EPSILON) return;
+
+  let deepest = 0;
+  for (let i = 0; i < out.contactCount; i++) {
+    const contact = out.contacts[i];
+    if (contact !== undefined && contact.depth > deepest) deepest = contact.depth;
+  }
+
+  const distance = deepest + SKIN;
+  working.x += (bisectorX / length) * distance;
+  working.y += (bisectorY / length) * distance;
+  working.z += (bisectorZ / length) * distance;
+  out.nudged = true;
 }
 
 /** Whether a capsule at this position overlaps nothing — what step-up and spawn ask. */
@@ -245,6 +311,7 @@ export function sweepCapsule(
   out.contactCount = 0;
   out.hit = false;
   out.noProgress = false;
+  out.nudged = false;
 
   const working: Capsule = {
     x: cap.x,
@@ -300,6 +367,8 @@ export function sweepCapsule(
       }
     }
   }
+
+  nudgeIfStuck(query, working, candidates, out);
 
   out.x = working.x;
   out.y = working.y;

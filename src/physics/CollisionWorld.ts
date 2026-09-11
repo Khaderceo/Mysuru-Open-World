@@ -11,6 +11,7 @@ import type { Vector3 } from 'three';
 import { UniformGrid } from '../utils/grid';
 import type { GroundSample, TerrainHeightFn } from './ground';
 import { FLAT_TERRAIN, sampleGround, stepUpTo } from './ground';
+import { findFreeSpawn, floorLimit } from './guards';
 import type { Capsule, SweepResult } from './sweep';
 import { isCapsuleFree, sweepCapsule } from './sweep';
 import type { GridFootprint } from '../utils/grid';
@@ -224,6 +225,22 @@ export class CollisionWorld {
         return isCapsuleFree(this, _fitProbe, this.sweepCandidates);
       },
     );
+  }
+
+  /**
+   * The lowest the capsule's feet may be at `x, z` (PLAYER_ARCHITECTURE.md §9 guard 1).
+   * Here rather than on the caller because the terrain function is this class's.
+   */
+  floorLimit(x: number, z: number, ceiling: number, out: GroundSample): number {
+    return floorLimit(this, this.terrain, x, z, ceiling, this.sweepCandidates, out);
+  }
+
+  /**
+   * The nearest position where `cap` fits, for spawns and teleports (§9 guard 6).
+   * False when nothing within the search rings is free.
+   */
+  findFreeSpawn(cap: Capsule, spacing: number, out: { x: number; y: number; z: number }): boolean {
+    return findFreeSpawn(this, cap, spacing, this.sweepCandidates, out);
   }
 
   /**
