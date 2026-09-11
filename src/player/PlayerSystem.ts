@@ -58,6 +58,16 @@ export interface PlayerOptions {
   readonly spawn?: readonly [number, number, number];
   /** Camera yaw in radians, published by T-2.6. World-relative movement without it. */
   readonly cameraYaw?: () => number;
+  /**
+   * The visible body (T-2.8). Optional, and driven only by the published view, so the
+   * controller never learns anything about meshes or clips.
+   */
+  readonly visual?: PlayerVisualDrive;
+}
+
+/** What the controller needs from a visual: something that can be pointed at the view. */
+export interface PlayerVisualDrive {
+  update(drive: PlayerView, dt: number): void;
 }
 
 /** How far ahead of the capsule a step-up is probed. */
@@ -69,6 +79,7 @@ export class PlayerSystem implements System {
   private world: CollisionWorld | null = null;
   private input: InputState | null = null;
   private readonly readCameraYaw: () => number;
+  private readonly visual: PlayerVisualDrive | null;
 
   private readonly capsule: Capsule;
   private readonly velocity = new Vector3();
@@ -105,6 +116,7 @@ export class PlayerSystem implements System {
 
   constructor(options: PlayerOptions = {}) {
     this.readCameraYaw = options.cameraYaw ?? (() => 0);
+    this.visual = options.visual ?? null;
     const spawn = options.spawn ?? [0, 0, 0];
     this.capsule = {
       x: spawn[0],
@@ -225,8 +237,10 @@ export class PlayerSystem implements System {
   }
 
   /** Visual interpolation between fixed steps (PLAYER_ARCHITECTURE.md §5). */
-  lateUpdate(_dt: number, alpha: number): void {
+  lateUpdate(dt: number, alpha: number): void {
     this.mutableView.position.lerpVectors(this.previous, this.current, alpha);
+    // The visual reads the interpolated view and nothing else (T-2.8).
+    this.visual?.update(this.mutableView, dt);
   }
 
   dispose(): void {

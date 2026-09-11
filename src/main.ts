@@ -11,6 +11,7 @@
 //   T-2.4  collision world owner + grey-box playground (physics/, world/)  <- done
 //   T-2.5  player controller                 (player/)      <- done
 //   T-2.6  third-person camera rig            (camera/)      <- done
+//   T-2.8  asset system + player proxy        (assets/, player/)  <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
@@ -21,6 +22,8 @@ import { InputSystem } from './input/InputSystem';
 import { PhysicsSystem } from './physics/PhysicsSystem';
 import { PlayerSystem } from './player/PlayerSystem';
 import { CameraSystem } from './camera/CameraSystem';
+import { PlayerVisual } from './player/PlayerVisual';
+import { AssetSystem } from './assets/AssetSystem';
 import { formatInputState } from './input/InputState';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
@@ -107,6 +110,20 @@ function bootstrap(): void {
 
   const config = createConfig(window.location.search);
 
+  // Asset loading policy (T-2.8). A tier-0 failure is fatal, later tiers are degraded
+  // notices — the same two error tiers T-1.7 established, reused rather than reinvented.
+  const assets = new AssetSystem({
+    load: async (key) => {
+      throw new Error(`AssetSystem has no loader bound yet (key '${key}')`);
+    },
+    onFatal: (key, cause) => {
+      errors.fatal('assets.required', 'A file the game needs could not be loaded.', { key }, cause);
+    },
+    onDegraded: (key, cause) => {
+      errors.degraded('assets.optional', 'Some artwork could not be loaded.', { key }, cause);
+    },
+  });
+
   game = new Game({
     scene,
     camera,
@@ -164,6 +181,12 @@ function bootstrap(): void {
       spawn = TEST_WORLD_SPAWN;
     }
 
+    // Tier 0 is everything needed before the first frame (ASSET_PLAN.md §2). The manifest
+    // is empty until there is art, so today this resolves at once — the seam is what
+    // matters, and it reports through the same loading bar the systems do.
+    loading.setPhase('Loading assets');
+    await assets.loadTier(0);
+
     // The player is not dev content, but where it starts depends on whether the grey-box
     // world is there to stand on, so it is constructed after that decision (T-2.5).
     //
@@ -171,7 +194,9 @@ function bootstrap(): void {
     // the interpolated position, and the player reads the camera's yaw through one
     // published number for camera-relative movement (CAMERA_ARCHITECTURE.md §8).
     const cameraSystem = new CameraSystem();
-    started.register(new PlayerSystem({ spawn, cameraYaw: () => cameraSystem.yaw }));
+    const visual = new PlayerVisual();
+    visual.attach(scene);
+    started.register(new PlayerSystem({ spawn, cameraYaw: () => cameraSystem.yaw, visual }));
     started.register(cameraSystem);
 
     loading.setPhase('Starting systems');

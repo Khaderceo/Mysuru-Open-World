@@ -176,12 +176,16 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
   - **T-2.2:** `sweepCapsule` never decremented its remaining motion, so a delta split into *n* sub-steps travelled `delta × H(n)` — the harmonic series — instead of `delta`. Any sweep of more than one sub-step overshot. T-2.2's slide test passed anyway because it asserted `x > 0.9` where the true answer is exactly 1.0; that assertion is now pinned.
 - **Risk / Complexity** Medium / M
 
-### T-2.8 · Player character proxy and animation hookup — `todo`
+### T-2.8 · Player character proxy and animation hookup — `done`
 - **Purpose** Something legible to look at, with the animation contract in place.
 - **Deps** T-2.5. **Doc** `PLAYER_ARCHITECTURE.md` §7, `ASSET_PLAN.md` §2.
 - **Files** `src/player/PlayerVisual.ts`, `src/assets/AssetSystem.ts` (initial), `src/data/assets.ts`.
 - **Acceptance** Asset system with manifest, keyed cache, reference counting, de-duplicated in-flight loads, retry policy and tiered loading; player visual driven by **animation keys** not clip names; a stylized proxy is acceptable if no character asset is available; swapping the asset requires no gameplay change.
-- **Validation** `npm run check`; manual.
+- **Landed** `assets/AssetSystem.ts` (one in-flight request per key, reference-counted cache that is the sole owner of what it holds, the documented 500/1500 ms retry schedule, tier-0 failure fatal and later tiers degraded through T-1.7's existing two error tiers, byte-weighted progress, tiered loading), `data/assets.ts` (the manifest's types), `player/PlayerVisual.ts` (the "block driver" proxy §7 allows, generated in code per `ASSET_PLAN.md` §10). 22 cases across `tests/unit/assets.test.ts` and `tests/unit/player-visual.test.ts`.
+- **The manifest is empty, deliberately** `ASSET_PLAN.md` §2 requires every manifest URL to exist in `public/` and §10 forbids committing placeholder art; there is no art in this repository. An entry without a file behind it would be a fatal tier-0 failure. So entries arrive with the art, and the loader's *fetch-and-parse* step is injected rather than bound to `GLTFLoader`/`KTX2Loader` — which is also what makes every policy above testable. **Binding the real loaders is owed by the first task that lands an asset.**
+- **Why the visual swap is free** `PlayerVisual` is driven by an animation *key* and a speed, never by clip names or mesh internals, and the controller passes it only the published `PlayerView`. Replacing it with an `AnimationMixer` crossfading real clips changes no gameplay code. The proxy is one draw call, three boxes, two materials.
+- **Not a `System`** `SYSTEM_IDS` has no `'assets'` id and `ARCHITECTURE.md` routes the loader through the `GameContext.assets` slot, so the bootstrap owns the instance and calls `loadTier(0)` behind the loading bar.
+- **Still owed** `TESTING_STRATEGY.md` §5 step 8 (a 404'd *optional* asset produces a notice, not a crash) was moved here by T-1.9, but it cannot be written yet: with an empty manifest there is no optional asset to 404. The degraded path it would exercise is unit-tested; the e2e step belongs with the first real tier-1 asset.
 - **Risk / Complexity** Medium / M
 
 ### T-2.9 · Guard tests for the six known failure modes — `todo`
