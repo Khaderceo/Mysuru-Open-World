@@ -1,16 +1,18 @@
 // The collision world: every static and movable collider, indexed for query
 // (PLAYER_ARCHITECTURE.md §2).
 //
-// Scope note. T-2.1 owns the shapes, the broadphase and the two queries that read them:
-// `overlapSphere` and `raycast`. The documented API's remaining members — `sweepCapsule`,
-// `sweepBox` and `groundAt` — are T-2.2's (`TASKS.md` T-2.2 owns `physics/sweep.ts` and
-// `physics/ground.ts`, and their `Capsule` / `OBB` / `SweepResult` parameter types are not
-// specified anywhere yet). They are deliberately absent rather than stubbed: a method
-// that exists and lies is worse than one that does not exist, and inventing their types
-// here would be starting the next task.
+// T-2.1 landed the shapes, the broadphase and the queries that read them. T-2.2 added
+// `sweepCapsule` and `groundAt`, which delegate to `sweep.ts` and `ground.ts` so this file
+// stays the API and they stay the maths. `sweepBox` is still absent: the documented
+// signature takes an `OBB` and no task before the vehicle dynamics (T-5.4) has a caller
+// for it, so it would be a method with no test and no user.
 
 import type { Vector3 } from 'three';
 import { UniformGrid } from '../utils/grid';
+import type { GroundSample, TerrainHeightFn } from './ground';
+import { FLAT_TERRAIN, sampleGround } from './ground';
+import type { Capsule, SweepResult } from './sweep';
+import { sweepCapsule } from './sweep';
 import type { GridFootprint } from '../utils/grid';
 import type {
   Collider,
@@ -49,11 +51,31 @@ export class CollisionWorld {
   /** Scratch, reused so queries allocate nothing. Queries are therefore not reentrant. */
   private readonly candidates: ColliderId[] = new Array<ColliderId>(INITIAL_CANDIDATES).fill(0);
   private readonly footprint: GridFootprint = { minX: 0, minZ: 0, maxX: 0, maxZ: 0 };
+  private readonly queryBox: GridFootprint = { minX: 0, minZ: 0, maxX: 0, maxZ: 0 };
   private readonly rayResult: ObbRayResult = createObbRayResult();
+
+  /**
+   * A second candidate buffer: the sweep queries the broadphase repeatedly inside one
+   * call, so it must not share scratch with `overlapSphere` or `raycast`.
+   */
+  private readonly sweepCandidates: ColliderId[] = new Array<ColliderId>(INITIAL_CANDIDATES).fill(
+    0,
+  );
+
+  /**
+   * Analytic terrain sampler behind `groundAt`. Flat until world installs the real one
+   * (T-3.2); Phase 2's grey-box world is flat by design (`WORLD_DESIGN.md` §6).
+   */
+  private terrain: TerrainHeightFn = FLAT_TERRAIN;
 
   /** How many colliders the world holds. */
   get size(): number {
     return this.held.size;
+  }
+
+  /** Install the terrain height function. Called by world (T-3.2); flat before that. */
+  setTerrain(terrain: TerrainHeightFn): void {
+    this.terrain = terrain;
   }
 
   /**
@@ -91,9 +113,51 @@ export class CollisionWorld {
     }
   }
 
-  /** The collider behind an id, for debug drawing and for the sweep code in T-2.2. */
+  /** The collider behind an id, for the narrowphase and for debug drawing. */
   colliderOf(id: ColliderId): Collider | undefined {
     return this.held.get(id)?.collider;
+  }
+
+  /** The broadphase OBB behind an id: the volume that encloses the collider. */
+  obbOf(id: ColliderId): ColliderObb | undefined {
+    return this.held.get(id)?.obb;
+  }
+
+  /**
+   * Broadphase only — every collider whose cells meet the XZ box, with no exact test.
+   * This is what the sweep and the ground query walk; callers wanting an exact answer use
+   * `overlapSphere`. Shares the same one-query-at-a-time contract as the rest.
+   */
+  queryFootprint(
+    minX: number,
+    minZ: number,
+    maxX: number,
+    maxZ: number,
+    out: ColliderId[],
+  ): number {
+    this.queryBox.minX = minX;
+    this.queryBox.maxX = maxX;
+    this.queryBox.minZ = minZ;
+    this.queryBox.maxZ = maxZ;
+    return this.grid.query(this.queryBox, out);
+  }
+
+  /**
+   * Move an upright capsule by a delta, sliding along whatever it meets
+   * (PLAYER_ARCHITECTURE.md §2). The capsule is not modified.
+   */
+  sweepCapsule(cap: Capsule, dx: number, dy: number, dz: number, out: SweepResult): void {
+    sweepCapsule(this, cap, dx, dy, dz, this.sweepCandidates, out);
+  }
+
+  /**
+   * Height of the walkable surface at `x, z` — analytic terrain or a collider top,
+   * whichever is higher without being above `ceiling`. Fills `out` with the slope normal
+   * too, so callers can judge walkability without a second query.
+   */
+  groundAt(x: number, z: number, ceiling: number, out: GroundSample): number {
+    sampleGround(this, this.terrain, x, z, ceiling, this.sweepCandidates, out);
+    return out.y;
   }
 
   /**

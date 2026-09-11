@@ -116,12 +116,12 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Landed** `physics/shapes.ts` (Collider union, yaw-OBB resolution, exact sphere and ray tests), `physics/CollisionWorld.ts` (add/remove/removeChunk/overlapSphere/raycast over the grid), `utils/grid.ts` (`UniformGrid<T>`, 8 m cells, per-owner bulk removal), `utils/math.ts`, `tests/unit/grid.test.ts` (23 cases). Two scope boundaries worth knowing next session: **(a)** `sweepCapsule`, `sweepBox` and `groundAt` are absent, not stubbed — T-2.2 owns them and their `Capsule`/`OBB`/`SweepResult` types are unspecified, so declaring them here would have been designing T-2.2; **(b)** nothing registers `GameContext.physics` yet — `core` may not import `physics` under `ARCHITECTURE.md` §3 (the layering check enforces it, type imports included), so the `PhysicsPort` alias and the task that constructs the world need a decision. Also still owed from `PLAYER_ARCHITECTURE.md` §2: collider and broadphase debug visualisation, which no task currently carries and which has nothing to draw until T-2.4 creates the first colliders.
 - **Risk / Complexity** Medium / M
 
-### T-2.2 · Capsule sweep and resolution — `todo`
+### T-2.2 · Capsule sweep and resolution — `done`
 - **Purpose** Correct, stable character collision — the highest-risk bespoke code in the project.
 - **Deps** T-2.1. **Doc** `PLAYER_ARCHITECTURE.md` §2, §9.
 - **Files** `src/physics/sweep.ts`, `src/physics/ground.ts`, `tests/unit/physics-sweep.test.ts`.
 - **Acceptance** Capsule-vs-OBB closest-point narrowphase; delta sub-stepped to ≤0.25 × radius; 4-iteration move/project/slide resolver; analytic `groundAt` plus collider tops; tests cover penetration resolved, slide along a wall, corner stability (no jitter over 300 steps), step-up at 0.35 m, no step-up at 0.5 m, 45° slope walkable / 50° not, and no tunnelling at 30 m/s.
-- **Validation** `npm run test`
+- **Landed** `physics/sweep.ts` (exact closest-point capsule-vs-OBB — the capsule stays upright under a yaw-only rotation, so clamping independently in Y and XZ is exact rather than iterative — plus `sweepCapsule`, `resolvePenetration`, `isCapsuleFree`), `physics/ground.ts` (`sampleGround`, `rampTopAt`, `stepUpTo`, `isWalkable`, and the `TerrainHeightFn` seam T-3.2 extends), `CollisionWorld.sweepCapsule` / `groundAt` / `queryFootprint` / `obbOf` / `setTerrain`, `tests/unit/physics-sweep.test.ts` (13 cases). A ramp's vertical body is its base box and its sloped top is a height field in `ground.ts`, so a wedge does not collide as the block enclosing it — the enclosing OBB stays the broadphase's. `sweepBox` is still unimplemented: no task before the vehicle dynamics (T-5.4) has a caller for it, so it would ship untested.
 - **Risk / Complexity** **High** / L — if this grows past ~400 lines, split narrowphase from resolution.
 
 ### T-2.3 · Collider visualisation — `todo`
