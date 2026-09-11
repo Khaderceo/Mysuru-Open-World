@@ -43,10 +43,38 @@ interface Held {
   readonly obb: ColliderObb;
 }
 
+/** One collider as a debug view reads it: the OBB, plus a ramp's rise. */
+export interface ColliderDebugShape {
+  cx: number;
+  cy: number;
+  cz: number;
+  hx: number;
+  hy: number;
+  hz: number;
+  cos: number;
+  sin: number;
+  rise: number;
+}
+
+/** Reused by `forEachCollider`; the visitor must not retain it. */
+const _debugShape: ColliderDebugShape = {
+  cx: 0,
+  cy: 0,
+  cz: 0,
+  hx: 0,
+  hy: 0,
+  hz: 0,
+  cos: 1,
+  sin: 0,
+  rise: 0,
+};
+
 export class CollisionWorld {
   private readonly grid = new UniformGrid<ColliderId>(CELL_SIZE);
   private readonly held = new Map<ColliderId, Held>();
   private nextId: ColliderId = 1;
+  /** Bumped by every structural change, so the debug view rebuilds only when it must. */
+  private structureRevision = 0;
 
   /** Scratch, reused so queries allocate nothing. Queries are therefore not reentrant. */
   private readonly candidates: ColliderId[] = new Array<ColliderId>(INITIAL_CANDIDATES).fill(0);
@@ -73,6 +101,16 @@ export class CollisionWorld {
     return this.held.size;
   }
 
+  /** Changes whenever a collider is added or removed (T-2.3's change detection). */
+  get revision(): number {
+    return this.structureRevision;
+  }
+
+  /** The broadphase cell size, for anything that draws or reasons about the grid. */
+  get cellSize(): number {
+    return CELL_SIZE;
+  }
+
   /** Install the terrain height function. Called by world (T-3.2); flat before that. */
   setTerrain(terrain: TerrainHeightFn): void {
     this.terrain = terrain;
@@ -94,6 +132,7 @@ export class CollisionWorld {
     if (ownerChunk === undefined) this.grid.insert(id, this.footprint);
     else this.grid.insert(id, this.footprint, ownerChunk);
 
+    this.structureRevision++;
     return id;
   }
 
@@ -101,6 +140,7 @@ export class CollisionWorld {
   remove(id: ColliderId): void {
     if (!this.held.delete(id)) return;
     this.grid.remove(id);
+    this.structureRevision++;
   }
 
   /** Remove every collider added under `ownerChunk` — one chunk unloading, in one call. */
@@ -111,6 +151,7 @@ export class CollisionWorld {
       if (id === undefined) continue;
       this.held.delete(id);
     }
+    if (removed > 0) this.structureRevision++;
   }
 
   /** The collider behind an id, for the narrowphase and for debug drawing. */
@@ -245,9 +286,34 @@ export class CollisionWorld {
     return true;
   }
 
+  /**
+   * Visit every collider as the shape a debug view draws (T-2.3). Allocation-free apart
+   * from the caller's closure, and off every per-frame path.
+   */
+  forEachCollider(visit: (shape: ColliderDebugShape) => void): void {
+    for (const entry of this.held.values()) {
+      _debugShape.cx = entry.obb.cx;
+      _debugShape.cy = entry.obb.cy;
+      _debugShape.cz = entry.obb.cz;
+      _debugShape.hx = entry.obb.hx;
+      _debugShape.hy = entry.obb.hy;
+      _debugShape.hz = entry.obb.hz;
+      _debugShape.cos = entry.obb.cos;
+      _debugShape.sin = entry.obb.sin;
+      _debugShape.rise = entry.collider.kind === 'ramp' ? entry.collider.rise : 0;
+      visit(_debugShape);
+    }
+  }
+
+  /** Visit every occupied broadphase cell, for the same view. */
+  forEachOccupiedCell(visit: (cellX: number, cellZ: number) => void): void {
+    this.grid.forEachCell(visit);
+  }
+
   /** Drop every collider. Used by world teardown and by tests. */
   clear(): void {
     this.held.clear();
     this.grid.clear();
+    this.structureRevision++;
   }
 }

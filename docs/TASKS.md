@@ -124,12 +124,12 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Landed** `physics/sweep.ts` (exact closest-point capsule-vs-OBB — the capsule stays upright under a yaw-only rotation, so clamping independently in Y and XZ is exact rather than iterative — plus `sweepCapsule`, `resolvePenetration`, `isCapsuleFree`), `physics/ground.ts` (`sampleGround`, `rampTopAt`, `stepUpTo`, `isWalkable`, and the `TerrainHeightFn` seam T-3.2 extends), `CollisionWorld.sweepCapsule` / `groundAt` / `queryFootprint` / `obbOf` / `setTerrain`, `tests/unit/physics-sweep.test.ts` (13 cases). A ramp's vertical body is its base box and its sloped top is a height field in `ground.ts`, so a wedge does not collide as the block enclosing it — the enclosing OBB stays the broadphase's. `sweepBox` is still unimplemented: no task before the vehicle dynamics (T-5.4) has a caller for it, so it would ship untested.
 - **Risk / Complexity** **High** / L — if this grows past ~400 lines, split narrowphase from resolution.
 
-### T-2.3 · Collider visualisation — `todo`
+### T-2.3 · Collider visualisation — `done`
 - **Purpose** Debugging collision without it is guesswork.
 - **Deps** T-2.1, T-1.6.
 - **Files** `src/debug/colliderView.ts`.
 - **Acceptance** Toggle draws every collider as wireframe plus the occupied broadphase cells and the player capsule; uses one shared line material and updates only on change; `__DEV__` only.
-- **Validation** manual.
+- **Landed** `debug/colliderView.ts`: two `LineSegments` sharing one line material, so the whole view is two draw calls. Collider wireframes (a ramp drawn as the wedge it is) and occupied broadphase cells rebuild only when `CollisionWorld.revision` moves; the player capsule is a separate object whose transform follows the player without a rebuild. Toggled with Shift+C or `?colliders=1`. It reads the physics and player systems **structurally** via `ctx.get`, so `debug/` imports neither module and `core/` needed no new API. Supporting reads added alongside: `CollisionWorld.revision` / `cellSize` / `forEachCollider` / `forEachOccupiedCell` and `UniformGrid.forEachCell`. Documented validation is manual, which this session cannot do, so `tests/unit/collider-view.test.ts` (6 cases) asserts the mechanics instead — geometry counts, one shared material, rebuild-only-on-change, capsule follow, nothing drawn while hidden. **How it looks still wants an eye on it.**
 - **Risk / Complexity** Low / S
 
 ### T-2.4 · Grey-box test world — `todo`

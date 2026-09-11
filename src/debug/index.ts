@@ -4,3 +4,5 @@
 
 export { DEBUG_HZ, DEBUG_MARKER, DebugOverlay } from './Overlay';
 export type { OverlaySources } from './Overlay';
+export { ColliderView } from './colliderView';
+export type { CapsuleDebugSource, ColliderDebugSource, ColliderShape } from './colliderView';

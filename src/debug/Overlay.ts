@@ -14,6 +14,8 @@ import type { GameContext } from '../core/GameContext';
 import type { System } from '../core/System';
 import type { SystemTiming } from '../core/Scheduler';
 import { setWireframe } from './gizmos';
+import { ColliderView } from './colliderView';
+import type { CapsuleDebugSource, ColliderDebugSource } from './colliderView';
 
 /** Grepped by tests/static/debug-absent.mjs to prove the module is not shipped. */
 export const DEBUG_MARKER = '__MOW_DEBUG_OVERLAY__';
@@ -29,6 +31,9 @@ const URL_FLAG = 'debug';
 
 /** Key that toggles it. Backquote avoids the browser shortcuts F3 and F12 sit on. */
 const TOGGLE_CODE = 'Backquote';
+
+/** URL flag that starts the collider view visible, e.g. `?colliders=1` (T-2.3). */
+const COLLIDER_FLAG = 'colliders';
 
 const BYTES_PER_MB = 1024 * 1024;
 /** RGBA plus a full mip chain is about 4 * 4/3 bytes per pixel. */
@@ -62,6 +67,11 @@ export class DebugOverlay implements System {
   private wireframe = false;
   private scene: Object3D | null = null;
 
+  /** Collider + broadphase view (T-2.3). Independent of the text panel's visibility. */
+  private colliderView: ColliderView | null = null;
+  private colliderSource: ColliderDebugSource | null = null;
+  private capsuleSource: CapsuleDebugSource | null = null;
+
   constructor(sources: OverlaySources) {
     this.sources = sources;
   }
@@ -69,6 +79,14 @@ export class DebugOverlay implements System {
   init(ctx: GameContext): void {
     this.scene = ctx.scene;
     this.visible = ctx.config.flags[URL_FLAG] !== undefined;
+
+    // The collider view reads the physics and player systems structurally, so debug/
+    // depends on neither module. Both are optional: before T-2.4 registers a physics
+    // system there is nothing to draw, and the view simply stays empty.
+    this.colliderView = new ColliderView(ctx.scene);
+    this.colliderSource = published<ColliderDebugSource>(ctx, 'physics', 'world');
+    this.capsuleSource = published<CapsuleDebugSource>(ctx, 'player', 'debugCapsule');
+    if (ctx.config.flags[COLLIDER_FLAG] !== undefined) this.colliderView.setVisible(true);
 
     const root = document.createElement('div');
     root.id = DEBUG_MARKER;
@@ -98,8 +116,11 @@ export class DebugOverlay implements System {
     if (this.sampleLength < SAMPLE_COUNT) this.sampleLength++;
   }
 
-  /** At DEBUG_HZ: the only place that writes to the DOM. */
+  /** At DEBUG_HZ: the only place that writes to the DOM, plus the collider view's sync. */
   update(): void {
+    if (this.colliderView !== null && this.colliderSource !== null) {
+      this.colliderView.sync(this.colliderSource, this.capsuleSource);
+    }
     if (!this.visible || this.body === null) return;
     this.body.textContent = this.report();
   }
@@ -110,6 +131,10 @@ export class DebugOverlay implements System {
     this.root = null;
     this.body = null;
     this.scene = null;
+    this.colliderView?.dispose();
+    this.colliderView = null;
+    this.colliderSource = null;
+    this.capsuleSource = null;
   }
 
   private readonly handleKey = (event: KeyboardEvent): void => {
@@ -122,6 +147,11 @@ export class DebugOverlay implements System {
     if (event.code === 'KeyG' && event.shiftKey && this.scene !== null) {
       this.wireframe = !this.wireframe;
       setWireframe(this.scene, this.wireframe);
+      return;
+    }
+    // Colliders and broadphase cells (T-2.3).
+    if (event.code === 'KeyC' && event.shiftKey && this.colliderView !== null) {
+      this.colliderView.setVisible(!this.colliderView.visible);
     }
   };
 
@@ -206,6 +236,29 @@ export class DebugOverlay implements System {
     });
     return bytes;
   }
+}
+
+/**
+ * A system's published interface, or null when that system is not registered or does not
+ * publish the member asked for. `probe` names one member the caller needs, so a system
+ * that exists but predates the interface is treated as absent rather than crashing.
+ */
+function published<T>(ctx: GameContext, id: 'physics' | 'player', probe: string): T | null {
+  let system: Record<string, unknown>;
+  try {
+    // `GameContext.get` throws for an unregistered system and there is no non-throwing
+    // lookup. Caught here rather than adding one to `core`, since this runs once at init
+    // and a debug tool must never be the reason core grows an API.
+    system = ctx.get(id) as unknown as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const value = probe === 'world' ? system['world'] : system;
+  if (value === null || typeof value !== 'object') return null;
+  if (probe !== 'world' && typeof (value as Record<string, unknown>)[probe] !== 'function') {
+    return null;
+  }
+  return value as T;
 }
 
 function ms(seconds: number): string {

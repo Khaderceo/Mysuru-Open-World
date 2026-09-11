@@ -173,6 +173,19 @@ export class UniformGrid<T> {
     return found;
   }
 
+  /**
+   * Visit every cell that currently holds anything. For the collider/broadphase debug
+   * view (T-2.3); the closure is why this is not on a per-frame path.
+   */
+  forEachCell(visit: (cellX: number, cellZ: number, count: number) => void): void {
+    for (const [key, bucket] of this.cells) {
+      if (bucket.length === 0) continue;
+      const cellX = Math.floor(key / CELL_STRIDE) - CELL_BIAS;
+      const cellZ = (key % CELL_STRIDE) - CELL_BIAS;
+      visit(cellX, cellZ, bucket.length);
+    }
+  }
+
   /** Drop every item and every cell. */
   clear(): void {
     this.cells.clear();
