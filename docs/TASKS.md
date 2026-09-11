@@ -3,7 +3,7 @@
 Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before starting any task.
 
 > ## Current position
-> **Phase 1 — complete; M1 deployed.** Live at https://khaderceo.github.io/Mysuru-Open-World/ from `cd3e77a` (deploy run 34519580933). Last done: **T-1.9**. Next task: **T-2.1**.
+> **Phase 2 — in progress.** Phase 1/M1 is deployed at https://khaderceo.github.io/Mysuru-Open-World/ from `cd3e77a` (deploy run 34519580933). Last done: **T-2.1**. Next task: **T-2.2**.
 > Update these two lines with every completed task, and read **only the current phase's section** below (plus the one architecture doc the task names). This file is ~850 lines; reading all of it every session is the largest avoidable token cost in the project (`PROJECT_SPEC.md` §6).
 
 **Status legend:** `todo` · `in-progress` · `done` · `blocked`
@@ -107,13 +107,13 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 
 ## PHASE 2 — Player, camera, test world (M2)
 
-### T-2.1 · Collision world: shapes and broadphase — `todo`
+### T-2.1 · Collision world: shapes and broadphase — `done`
 - **Purpose** The foundation of all movement.
 - **Deps** T-1.3. **Doc** `PLAYER_ARCHITECTURE.md` §2.
 - **Files** `src/physics/CollisionWorld.ts`, `src/physics/shapes.ts`, `src/utils/grid.ts`, `src/utils/math.ts`, `tests/unit/grid.test.ts`.
 - **Note** The uniform grid goes in `utils/` because `city/spatialIndex.ts` (T-3.3) and `interaction` need the same structure over different contents. **One implementation, several instances** — a second grid implementation is the duplication `CLAUDE_WORKFLOW.md` §9 names.
 - **Acceptance** `Collider` union (box/ramp/wall, yaw-only) and the documented `CollisionWorld` API; a generic `UniformGrid<T>` in `utils/` with 8 m cells, insert/remove and per-owner bulk removal; `overlapSphere` and `raycast` allocation-free with `out` parameters; unit tests for grid membership, bulk removal and query correctness.
-- **Validation** `npm run test`
+- **Landed** `physics/shapes.ts` (Collider union, yaw-OBB resolution, exact sphere and ray tests), `physics/CollisionWorld.ts` (add/remove/removeChunk/overlapSphere/raycast over the grid), `utils/grid.ts` (`UniformGrid<T>`, 8 m cells, per-owner bulk removal), `utils/math.ts`, `tests/unit/grid.test.ts` (23 cases). Two scope boundaries worth knowing next session: **(a)** `sweepCapsule`, `sweepBox` and `groundAt` are absent, not stubbed — T-2.2 owns them and their `Capsule`/`OBB`/`SweepResult` types are unspecified, so declaring them here would have been designing T-2.2; **(b)** nothing registers `GameContext.physics` yet — `core` may not import `physics` under `ARCHITECTURE.md` §3 (the layering check enforces it, type imports included), so the `PhysicsPort` alias and the task that constructs the world need a decision. Also still owed from `PLAYER_ARCHITECTURE.md` §2: collider and broadphase debug visualisation, which no task currently carries and which has nothing to draw until T-2.4 creates the first colliders.
 - **Risk / Complexity** Medium / M
 
 ### T-2.2 · Capsule sweep and resolution — `todo`
