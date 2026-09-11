@@ -152,12 +152,14 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Seams for the next tasks** `cameraYaw` is an injected reader defaulting to 0 (world-relative movement) until T-2.6 publishes it; `inVehicle` is a private field nothing in Phase 2 sets, for T-5.6; the `'land'` animation key of §7 is not a state in §4's diagram and is left to T-2.8.
 - **Risk / Complexity** High / L
 
-### T-2.6 · Third-person camera rig — `todo`
+### T-2.6 · Third-person camera rig — `done`
 - **Purpose** The camera the player looks through for the whole game.
 - **Deps** T-2.5. **Doc** `CAMERA_ARCHITECTURE.md`.
 - **Files** `src/camera/CameraSystem.ts`, `src/camera/rig.ts`, `src/camera/probe.ts`.
 - **Acceptance** Anchor/orbit/position rig with the documented time constants; pitch clamps; `1 - exp(-dt/tau)` smoothing (never dt-multiplied mouse delta); wheel distance control; sphere-cast probe with 4 corner rays, fast pull-in / slow push-out, and the ground floor clamp; anchor-inside-geometry fallback; `cameraYaw` published for camera-relative movement; zero per-frame allocation.
-- **Validation** manual against the wall/corner cases in the test world; `npm run typecheck`.
+- **Landed** `camera/rig.ts` (anchor/orbit/position as plain numbers — `approach` with `1 - exp(-dt/tau)`, pitch clamped to −35…+70°, yaw wrapped to (−π, π], wheel zoom inside 2.5–6.0 m, immediate pull-in and eased push-out), `camera/probe.ts` (five rays: centre plus four ring offsets for corners, `d − 0.25` on a hit, ground floor clamp, anchor-inside-geometry test), `camera/CameraSystem.ts` (drives T-1.2's one `PerspectiveCamera`, runs in `lateUpdate` after the player's so it follows the interpolated position, slerps rotation rather than lerping Euler angles, and publishes `yaw` as the single number the player consumes). Camera constants went into `data/balance.ts` as §4 requires. `rendering/validationScene.ts` lost its camera aim, which its own comment had scheduled for this task; only the lighting is left, for T-3.10. 16 cases in `tests/unit/camera-rig.test.ts` — the documented validation is manual, and how it *feels* is still T-2.7's, but a pitch clamp with the wrong sign or a probe that lets the camera into a wall is not something the eye catches reliably.
+- **Fixed while testing** `wrapAngle` returned −π for −3π, outside the (−π, π] interval it documents. Harmless for a yaw, wrong for its contract; now closed at the top.
+- **Not implemented, and why** vehicle mode, the enter/exit transition, speed FOV and camera shake are all §2/§6 behaviour for the vehicle tasks (T-5.x); §2 says a mode is a parameter set, so they are data additions to `balance.ts` rather than code here. `CAMERA.tau.vehicleYaw` and `CAMERA.tau.fov` are present but unused until then.
 - **Risk / Complexity** Medium / M
 
 ### T-2.7 · Movement and camera feel tuning — `todo`

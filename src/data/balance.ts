@@ -56,3 +56,45 @@ export const MAX_WALKABLE_SLOPE_COS = Math.cos((PLAYER.maxWalkableSlopeDeg * Mat
 
 /** Speed below which the controller treats the player as standing still. */
 export const IDLE_SPEED = 0.05;
+
+/**
+ * Camera rig (CAMERA_ARCHITECTURE.md §2–5). Time constants are seconds; §4 requires they
+ * live here. Vehicle mode is a second parameter set, added by its own task (T-5.x) —
+ * "adding a mode is adding data, not code".
+ */
+export const CAMERA = {
+  /** ThirdPersonWalk, the only mode Phase 2 has. */
+  walk: {
+    distance: 4.0,
+    minDistance: 2.5,
+    maxDistance: 6.0,
+    /** Anchor height above the player's feet, and the shoulder offset to its right. */
+    height: 1.55,
+    shoulder: 0.35,
+    fov: 60,
+    pitchMinDeg: -35,
+    pitchMaxDeg: 70,
+  },
+
+  /** Radians per pixel of mouse movement. Never multiplied by dt (§3). */
+  sensitivity: 0.0022,
+  /** Metres of distance change per unit of wheel delta. */
+  zoomRate: 0.005,
+
+  /** Probe sphere radius, and how far the four corner rays sit off the centre ray. */
+  probeRadius: 0.25,
+  probeRingOffset: 0.2,
+  /** The camera never sits closer than this above the ground (§5.4). */
+  groundClearance: 0.3,
+  /** Where the camera goes when the anchor itself is inside geometry (§5.5). */
+  fallbackHeight: 2.6,
+
+  tau: {
+    anchor: 0.08,
+    position: 0.1,
+    vehicleYaw: 0.25,
+    fov: 0.3,
+    /** Slow push-out after an obstruction clears; pulling in is immediate (§4). */
+    distanceRecover: 0.2,
+  },
+} as const;

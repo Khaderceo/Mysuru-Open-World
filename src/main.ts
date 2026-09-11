@@ -10,6 +10,7 @@
 //   T-1.9  e2e read-only hook               (guarded by __E2E__)  <- done
 //   T-2.4  collision world owner + grey-box playground (physics/, world/)  <- done
 //   T-2.5  player controller                 (player/)      <- done
+//   T-2.6  third-person camera rig            (camera/)      <- done
 
 import { Game } from './core/Game';
 import { ErrorReporter, type ErrorReport } from './core/errors';
@@ -19,6 +20,7 @@ import { detectCapabilities } from './core/capabilities';
 import { InputSystem } from './input/InputSystem';
 import { PhysicsSystem } from './physics/PhysicsSystem';
 import { PlayerSystem } from './player/PlayerSystem';
+import { CameraSystem } from './camera/CameraSystem';
 import { formatInputState } from './input/InputState';
 import { Renderer } from './rendering/Renderer';
 import { createCamera } from './rendering/camera';
@@ -81,8 +83,8 @@ function bootstrap(): void {
   const scene = createScene();
   const camera = createCamera(canvas.clientWidth / canvas.clientHeight);
 
-  // Temporary Phase-1 validation content, retired by T-2.4 / T-3.10.
-  addValidationScene(scene, camera);
+  // Temporary Phase-1 lighting, retired by T-3.10.
+  addValidationScene(scene);
 
   // Renders on demand until the loop starts; without this a resize before start would
   // leave a stretched frame on screen.
@@ -164,7 +166,13 @@ function bootstrap(): void {
 
     // The player is not dev content, but where it starts depends on whether the grey-box
     // world is there to stand on, so it is constructed after that decision (T-2.5).
-    started.register(new PlayerSystem({ spawn }));
+    //
+    // The camera is registered after the player so its lateUpdate runs second and follows
+    // the interpolated position, and the player reads the camera's yaw through one
+    // published number for camera-relative movement (CAMERA_ARCHITECTURE.md §8).
+    const cameraSystem = new CameraSystem();
+    started.register(new PlayerSystem({ spawn, cameraYaw: () => cameraSystem.yaw }));
+    started.register(cameraSystem);
 
     loading.setPhase('Starting systems');
     await started.initSystems();
