@@ -267,10 +267,20 @@ export function sweepCapsule(
   const startZ = working.z;
 
   for (let step = 0; step < steps; step++) {
+    // Advance by the remaining motion divided by the sub-steps left, and take that much
+    // *off* the remainder. Without the subtraction the same remainder is re-spent with a
+    // smaller divisor each time and the sweep travels delta x H(steps) — the harmonic
+    // series — instead of delta. Found by T-2.7's wall-slide test.
     const left = steps - step;
-    working.x += remainingX / left;
-    working.y += remainingY / left;
-    working.z += remainingZ / left;
+    const stepX = remainingX / left;
+    const stepY = remainingY / left;
+    const stepZ = remainingZ / left;
+    working.x += stepX;
+    working.y += stepY;
+    working.z += stepZ;
+    remainingX -= stepX;
+    remainingY -= stepY;
+    remainingZ -= stepZ;
 
     for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
       const id = deepestPenetration(query, working, candidates, _deepest);

@@ -162,12 +162,18 @@ Work top to bottom. One task at a time. Read `CLAUDE_WORKFLOW.md` §1 before sta
 - **Not implemented, and why** vehicle mode, the enter/exit transition, speed FOV and camera shake are all §2/§6 behaviour for the vehicle tasks (T-5.x); §2 says a mode is a parameter set, so they are data additions to `balance.ts` rather than code here. `CAMERA.tau.vehicleYaw` and `CAMERA.tau.fov` are present but unused until then.
 - **Risk / Complexity** Medium / M
 
-### T-2.7 · Movement and camera feel tuning — `todo`
+### T-2.7 · Movement and camera feel tuning — `blocked`
 - **Purpose** Make it *pleasant*. This is a deliverable, not a nicety.
 - **Deps** T-2.5, T-2.6. **Doc** `GAME_DESIGN.md` §15, `MVP_ACCEPTANCE.md` L1–L2.
 - **Files** `src/data/balance.ts` only.
 - **Acceptance** A written checklist signed off: acceleration feels responsive without ice-skating; running is distinctly faster without being twitchy; jump lands where the player expects; no jitter against walls; the camera never flinches; identical feel at 60 and 144 Hz. Values changed in data only — **no logic changes in this task**.
-- **Validation** manual checklist recorded in the commit body.
+- **Status: `blocked` on the human half, done on the mechanical half.** The acceptance is "a written checklist **signed off**", and four of its six items are judgements only a person playing the game can make. This session did the parts that are not judgement calls and left the sign-off open rather than claiming it.
+  - **Verified mechanically** (`tests/unit/feel.test.ts`, 6 cases): identical behaviour at 60 and 144 Hz (the simulation is fixed-step, and the camera's exponential smoothing lands in the same place for the same elapsed time either way); no jitter against a wall over 300 steps; a smooth slide along a wall with a constant per-step advance; the jump reaching its documented apex and returning to the ground it left.
+  - **Still needs a person at the keyboard** acceleration responsive without ice-skating; running distinctly faster without being twitchy; jump landing where the player expects; the camera never flinching. Run the grey-box world with `?testworld=1` and record the sign-off here.
+- **One data change** `PLAYER.jumpVelocity` 3.3 → 4.69 m/s. `PLAYER_ARCHITECTURE.md` §3 reads "Jump apex **0.55 m** (initial vy ≈ 3.3 m/s with g = 20 m/s²)", but those disagree: 3.3²/(2×20) = 0.272 m, less than half the stated apex. The row's headline value is the apex, so √(2×20×0.55) = 4.69 is what honours it. **The document's parenthetical is the part that is wrong and still says 3.3** — it was not edited, because this task's scope is data. Worth correcting there.
+- **Two defects found, both fixed, both outside this task's "data only" scope** — logic was changed deliberately rather than leaving known-broken code behind, and both belong to earlier tasks:
+  - **T-2.5:** the camera-relative transform had the forward term's sign inverted, so W walked *away* from where the camera looked. T-2.5's tests missed it because they only drove the X axis or checked speed magnitudes.
+  - **T-2.2:** `sweepCapsule` never decremented its remaining motion, so a delta split into *n* sub-steps travelled `delta × H(n)` — the harmonic series — instead of `delta`. Any sweep of more than one sub-step overshot. T-2.2's slide test passed anyway because it asserted `x > 0.9` where the true answer is exactly 1.0; that assertion is now pinned.
 - **Risk / Complexity** Medium / M
 
 ### T-2.8 · Player character proxy and animation hookup — `todo`

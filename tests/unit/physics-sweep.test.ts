@@ -81,10 +81,11 @@ describe('capsule resolution', () => {
     world.sweepCapsule(cap, 1, 0, 1, result);
 
     expect(result.hit).toBe(true);
-    // Blocked in z at one radius from the face, but the tangential metre is preserved.
+    // Blocked in z at one radius from the face, but the tangential metre is preserved —
+    // all of it and no more, which is what catches a sub-stepping overshoot.
     expect(result.z).toBeLessThan(-0.55);
     expect(result.z).toBeGreaterThan(-0.65);
-    expect(result.x).toBeGreaterThan(0.9);
+    expect(result.x).toBeCloseTo(1, 6);
     expect(result.noProgress).toBe(false);
   });
 

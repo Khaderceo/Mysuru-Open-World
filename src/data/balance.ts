@@ -28,9 +28,17 @@ export const PLAYER = {
   /** Velocity-space steering time constant toward the input direction, seconds. */
   turnTau: 0.12,
 
-  /** Apex the jump velocity is derived from, and the derived velocity itself. */
+  /**
+   * Apex the jump velocity is derived from, and that velocity.
+   *
+   * T-2.7 note: PLAYER_ARCHITECTURE.md §3 reads "Jump apex 0.55 m (initial vy ≈ 3.3 m/s
+   * with g = 20 m/s²)", but those two do not agree — 3.3²/(2×20) is 0.272 m, less than
+   * half the stated apex. The row's headline value is the apex, so that is what is
+   * honoured here: v = √(2gh) = √(2×20×0.55) = 4.69 m/s. The document's parenthetical is
+   * the part that is wrong, and is flagged in TASKS.md rather than edited from here.
+   */
   jumpApex: 0.55,
-  jumpVelocity: 3.3,
+  jumpVelocity: 4.69,
   gravity: 20,
   terminalFall: 25,
 

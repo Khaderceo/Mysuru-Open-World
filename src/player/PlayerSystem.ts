@@ -152,9 +152,12 @@ export class PlayerSystem implements System {
     const cos = Math.cos(yaw);
     const sin = Math.sin(yaw);
     const moveMagnitude = Math.min(1, Math.hypot(moveX, moveY));
-    // move.y is "forward on the stick", and forward in camera space is -Z.
-    const desiredX = (moveX * cos - moveY * sin) * state.maxSpeed;
-    const desiredZ = (moveX * sin + moveY * cos) * state.maxSpeed;
+    // desired = right x move.x + forward x move.y, where the camera's own rig puts
+    // forward at (sin yaw, 0, −cos yaw) and screen-right at (cos yaw, 0, sin yaw). Getting
+    // the forward term's sign wrong here makes W walk away from the camera, which is what
+    // it did until T-2.7's wall test caught it.
+    const desiredX = (moveX * cos + moveY * sin) * state.maxSpeed;
+    const desiredZ = (moveX * sin - moveY * cos) * state.maxSpeed;
 
     // 3. Accelerate toward it at the documented m/s², which is frame-rate independent
     //    without any exponential: the step is rate x dt, clamped so it cannot overshoot.
